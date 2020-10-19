@@ -1,3 +1,3 @@
-.cproj
-.xml
+*:.cproj
+*.xml
 Debug/ 
