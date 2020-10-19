@@ -1,15 +1,26 @@
 #ifndef LIMA_H_
 #define LIMA_H_
 
-/* atraso_timer0:
+/* atraso_timer0_ctc:
  * Gera um atraso relativo a n contagens com Timer0 em modo CTC
  * n = ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
  */
-void atraso_timer0(volatile unsigned char n){
-	// O Timer deve ser zerado previamente se necessário
+void atraso_timer0_ctc(volatile unsigned char n){
+	// O Timer deve ser zerado e configurado previamente conforme necessário
 	OCR0A = n;						// Define valor de comparação
 	while((TIFR0 & (1 << 1)) == 0);	// Espera o flag de overflow
 	TIFR0 |= (1 << 1);				// Zera o flag de overflow
+}
+
+/* atraso_timer1_ctc:
+ * Gera um atraso relativo a n contagens com Timer1 em modo CTC
+ * n = ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
+ */
+void atraso_timer1_ctc(volatile unsigned char n){
+	// O Timer deve ser zerado e configurado previamente conforme necessário
+	OCR1A = n;
+	while((TIFR1 & (1 << 1)) == 0);	// Espera o flag de overflow
+	TIFR1 |= (1 << 1);				// Zera o flag de overflow
 }
 
 void init_display(){
@@ -23,7 +34,7 @@ volatile unsigned char debounce(volatile unsigned char tecla){
 	
 	volatile unsigned char contador = 0, tecla_anterior = 0;
 	while(contador < 8){
-		atraso_timer0(8);		// Atraso de 1ms
+		atraso_timer0_ctc(63);	// Atraso de 1ms
 		tecla = 0;				// Lê o teclado
 		// Checa se a tecla se repetiu
 		if(tecla == tecla_anterior){ contador++; }
@@ -41,7 +52,7 @@ volatile unsigned char debounce(volatile unsigned char tecla){
 void escreve_EEPROM(volatile unsigned short endereco, volatile unsigned char dado){
 	// EEPE: 1 -> escrita	0 -> leitura
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
-	EECR = (0 << EEPM1) | (0 << EEPM0); // Escolhe o modo atômico (00, apaga e escreve de uma vez)
+	EECR = (0 << EEPM1) | (0 << EEPM0);	// Escolhe o modo atômico (00, apaga e escreve de uma vez)
 	EEAR = endereco;
 	EEDR = dado;
 	EECR |= (1 << EEMPE);				// Liga o Master Program Enable
