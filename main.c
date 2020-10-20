@@ -70,9 +70,8 @@ int main(void){
 	};
 	*/
 	
-	volatile unsigned char atrasos[2] = {50,75};
+	volatile const unsigned char atrasos[2] = {50,75};
 	volatile unsigned char dado;
-	
 	// EEPROM
 	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)
 	escreve_EEPROM(0x02,0x84);
@@ -84,12 +83,12 @@ int main(void){
 	// Configuração Timer0
 	TCCR0A = T0OVR;			// Modo do Timer0
 	TCCR0B = PRE_256;		// Prescaler de 256 (FREQ_CPU = 16MHz -> FREQ TIMER = 62.5kHz)
-	TIFR0 |= (1 << 1);		// Zera o flag de overflow do Timer0
-	
+	TIFR0 |= (1 << 0);		// Zera o flag de overflow do Timer0
+
 	// Configuração Timer1
 	TCCR1A = T1OVR;			// Modo do Timer1
 	TCCR1B = PRE_256;		// Prescaler de 256 (FREQ_CPU = 16MHz -> FREQ TIMER = 62.5kHz)
-	TIFR1 |= (1 << 1);		// Zera o flag de overflow do Timer1
+	TIFR1 |= (1 << 0);		// Zera o flag de overflow do Timer1
 
 	DDRB |= (1 << 5);		// Seta pino PB5 como output
 	DDRB |= (1 << 4);		// Seta pino PB4 como output
@@ -99,7 +98,7 @@ int main(void){
 	
 	// Inicialização dos pinos do teclado
 	DDRD |=	0x0F;			// Seta as linhas do teclado como output
-	DDRD &= ~(0x70);			// Seta as colunas do teclado como input
+	DDRD &= ~(0x70);		// Seta as colunas do teclado como input
 	
     while (1){
 		// TESTE TIMER OVERFLOW USANDO DADO DA EEPROM

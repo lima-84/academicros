@@ -1,3 +1,5 @@
-*:.cproj
+*.cproj
 *.xml
+..gitignore.un~
+.gitignore~
 Debug/ 
