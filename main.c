@@ -74,11 +74,15 @@ void LCD_mensagem_padrao(){
 	imprime_lotacao();
 }
 
+/* ISR(TIMER1_OVF_vect):
+ * Trata interrupção por overflow do Timer1, atualiza a hora no display LCD
+ * Tempo de execução da função ~1ms
+ */
 ISR(TIMER1_OVF_vect){
+	// Atualiza e imprime a hora no display LCD
 	atualiza_hora();
 	imprime_hora();
-	PORTB ^= (1 << 5);
-	TCNT1 = 65536 - ATR_1_SEG;
+	TCNT1 = 65536 - ATR_1_SEG; // Reinicializa o Timer1
 }
 
 int main(void){
@@ -112,7 +116,7 @@ int main(void){
 		28857,
 		29140
 	};	
-	volatile const char lista_planos [11] =
+	volatile char lista_planos [11] =
 	{
 		'M',
 		'P',
@@ -146,6 +150,11 @@ int main(void){
 	TCCR1B = PRE_256;		// Prescaler de 256 (FREQ_CPU = 16MHz -> FREQ TIMER = 62.5kHz)
 	TIFR1 |= (1 << 0);		// Zera o flag de overflow do Timer1
 	TIMSK1 = (1 << 0);		// Ativa interrupção por overflow no Timer1
+
+	// Configuração Timer2
+	TCCR2A = T2OVR;			// Modo do Timer2
+	TCCR2B = PRE2_256;		// Prescaler de 256 (FREQ_CPU = 16MHz -> FREQ TIMER = 62.5kHz)
+	TIFR2 |= (1 << 0);		// Zera o flag de overflow do Timer2
 
 	DDRB |= (1 << 5);		// Seta pino PB5 como output
     
@@ -183,6 +192,14 @@ int main(void){
 		//atraso_timer1(65536 - 6250);
 		//atualiza_hora();
 		//imprime_hora();
+		
+		PORTB ^= (1 << 5);
+		atraso_timer2(256 - ATR_800);
+		//atraso_timer2_ctc(ATR_800);
+		
+		PORTB ^= (1 << 5);
+		atraso_timer2(256 - ATR_1200);
+		//atraso_timer2_ctc(ATR_1200);
 		
 		/* // TESTE TIMER CTC
 		PORTB &= ~(1 << 4);						// Zera o pino PB4

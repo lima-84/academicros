@@ -22,13 +22,27 @@
 #define T1OVR 0x00	// Modo overflow
 #define T1CTC 0x04	// Modo CTC
 
-// Prescalers (comuns para os timers)
+// Modos do Timer2
+#define T2OVR 0x00	// Modo overflow
+#define T2CTC 0x02	// Modo CTC
+
+// Prescalers comuns para Timer0 e Timer1
 #define PRE_TIMER_OFF 0x00
 #define PRE_1 0x01
 #define PRE_8 0x02
 #define PRE_64 0x03
 #define PRE_256 0x04
 #define PRE_1024 0x05
+
+// Prescalers Timer2
+#define PRE2_TIMER_OFF 0x00
+#define PRE2_1 0x01
+#define PRE2_8 0x02
+#define PRE2_32 0x03
+#define PRE2_64 0x04
+#define PRE2_128 0x05
+#define PRE2_256 0x06
+#define PRE2_1024 0x07
 
 // Pinos do display LCD
 #define RS 7		// RS no pino PD7
@@ -71,6 +85,17 @@ void atraso_timer1(volatile unsigned short n){
 	TIFR1 |= (1 << 0);
 }
 
+/* atraso_timer2:
+ * Gera um atraso relativo a n contagens com Timer2 em modo normal
+ * n = 256 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
+ */
+void atraso_timer2(volatile unsigned char n){
+	// O Timer deve ser configurado previamente conforme necessário
+	TCNT2 = n;						// Inicializa o timer
+	while((TIFR2 & (1 << 0)) == 0);	// Espera o flag de overflow
+	TIFR2 |= (1 << 0);				// Zera o flag de overflow
+}
+
 /* atraso_timer0_ctc:
  * Gera um atraso relativo a n contagens com Timer0 em modo CTC
  * n = ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
@@ -91,6 +116,17 @@ void atraso_timer1_ctc(volatile unsigned short n){
 	OCR1A = n;						// Define o valor de comparação
 	while((TIFR1 & (1 << 1)) == 0);	// Espera o flag de overflow
 	TIFR1 |= (1 << 1);				// Zera o flag de overflow
+}
+
+/* atraso_timer2_ctc:
+ * Gera um atraso relativo a n contagens com Timer2 em modo CTC
+ * n = ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
+ */
+void atraso_timer2_ctc(volatile unsigned char n){
+	// O Timer deve ser zerado e configurado previamente conforme necessário
+	OCR2A = n;						// Define valor de comparação
+	while((TIFR2 & (1 << 1)) == 0);	// Espera o flag de overflow
+	TIFR2 |= (1 << 1);				// Zera o flag de overflow
 }
 
 /* LCD_caractere:
