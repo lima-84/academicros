@@ -2,7 +2,9 @@
 #include <avr/interrupt.h>
 #include "lima.h"
 
-char horas[2] = {1,9}, minutos[2] = {3,7}, lotacao = 3;
+char horas[2] = {2,2}, minutos[2] = {5,5}, lotacao = 3;
+volatile char flag_cliente_apos_horario = 0;
+volatile char flag_adm = 0, flag_atualiza_horario = 0;
 
 /* atualiza_hora:
  * Incrementa o relógio de um minuto
@@ -74,15 +76,37 @@ void LCD_mensagem_padrao(){
 	imprime_lotacao();
 }
 
+void LCD_mensagem_cliente_apos_horario(){
+	LCD_caractere(LCD_LINHA_UM,CMD);	// Posiciona o cursor na primeira linha
+	LCD_string("AVISO:     ");
+
+	LCD_caractere(LCD_LINHA_DOIS,CMD);	// Posiciona o cursor na segunda linha
+	LCD_string("Pessoas dentro:");
+}
+
 /* ISR(TIMER1_OVF_vect):
  * Trata interrupção por overflow do Timer1, atualiza a hora no display LCD
  * Tempo de execução da função ~1ms
  */
 ISR(TIMER1_OVF_vect){
-	// Atualiza e imprime a hora no display LCD
-	atualiza_hora();
-	imprime_hora();
-	TCNT1 = 65536 - ATR_1_SEG; // Reinicializa o Timer1
+	// Checa se é a segunda interrupção consecutiva (ou seja, 1 segundo se passou)
+	if(flag_atualiza_horario == 1){
+		// Atualiza e imprime a hora no display LCD
+		atualiza_hora();
+		imprime_hora();
+		flag_atualiza_horario = 0;
+	}
+	else{
+		// Se não atualizou nesta interrupção, deve atualizar na próxima
+		flag_atualiza_horario = 1;
+	}
+	TCNT1 = 65536 - ATR_500_MS; // Reinicializa o Timer1
+	
+	// Se houver algum cliente na academia após o horário
+	if(flag_cliente_apos_horario == 1){
+		//PORTT ^= (1 << TESTE);		// Inverte o pino de teste
+		PORTB ^= (1 << LED);	// Inverte o LED
+	}
 }
 
 int main(void){
@@ -149,15 +173,19 @@ int main(void){
 	TCCR1A = T1OVR;			// Modo do Timer1
 	TCCR1B = PRE_256;		// Prescaler de 256 (FREQ_CPU = 16MHz -> FREQ TIMER = 62.5kHz)
 	TIFR1 |= (1 << 0);		// Zera o flag de overflow do Timer1
-	TIMSK1 = (1 << 0);		// Ativa interrupção por overflow no Timer1
+	TIMSK1 |= (1 << 0);		// Ativa interrupção por overflow no Timer1
 
 	// Configuração Timer2
 	TCCR2A = T2OVR;			// Modo do Timer2
 	TCCR2B = PRE2_256;		// Prescaler de 256 (FREQ_CPU = 16MHz -> FREQ TIMER = 62.5kHz)
 	TIFR2 |= (1 << 0);		// Zera o flag de overflow do Timer2
-
-	DDRB |= (1 << 5);		// Seta pino PB5 como output
-    
+	
+	DDRB |= (1 << 5);		// Seta pino PB5 como output (LED da placa)
+	PORTB &= ~(1 << 5);		// Inicializa PB5 com zero (LED desligado)
+	
+	DDRT |= (1 << TESTE);	// Seta pino de teste como output
+	PORTT &= ~(1 << TESTE);	// Inicializa o pino de teste em zero
+	
 	// Inicialização dos pinos do LCD
 	DDRB |= 0x0F;			// Seta os pinos de dados do LCD como output (PORT B)
 	DDRD |= (1 << RS);		// Seta o pino de RS do LCD como output (PORT D)
@@ -175,51 +203,18 @@ int main(void){
 	LCD_mensagem_padrao();
 	
 	sei();					// Habilita interrupções
-	TCNT1 = 65536 - ATR_1_SEG;
+	TCNT1 = 65536 - ATR_500_MS;
 	
     while (1){
-		// TESTE TIMER OVERFLOW USANDO DADO DA EEPROM
-		//PORTB ^= (1 << 5);
-		//atraso_timer0(256 - ATR_1200);
-		//PORTB ^= (1 << 5);
-		//atraso_timer0(256 - dado);
-
-		//PORTB ^= (1 << 5);
-		//atraso_timer1(65536 - ATR_1200);
-		//PORTB ^= (1 << 5);
-		//atraso_timer1(65536 - dado);
-
-		//atraso_timer1(65536 - 6250);
-		//atualiza_hora();
-		//imprime_hora();
-		
-		PORTB ^= (1 << 5);
-		atraso_timer2(256 - ATR_800);
-		//atraso_timer2_ctc(ATR_800);
-		
-		PORTB ^= (1 << 5);
-		atraso_timer2(256 - ATR_1200);
-		//atraso_timer2_ctc(ATR_1200);
-		
-		/* // TESTE TIMER CTC
-		PORTB &= ~(1 << 4);						// Zera o pino PB4
-		
-		PORTB ^= (1 << 5);						// Inverte o pino PB5
-		TCNT0 = 0x00;							// Zera o Timer0
-		atraso_timer0_ctc(ATR_1200);	// Atraso de 1200us
-		PORTB ^= (1 << 5);		
-		atraso_timer0_ctc(ATR_800);	// Atraso de 800us
-		
-		PORTB |= (1 << 4);						// Liga o pino PB4
-		
-		PORTB ^= (1 << 5);
-		TCNT1 = 0x00;							// Zera o Timer1
-		atraso_timer1_ctc(ATR_1200);	// Atraso de 1200us
-		PORTB ^= (1 << 5);
-		TCNT1 = 0x00;
-		atraso_timer1_ctc(ATR_800);	// Atraso de 800us
-		*/
-
+		// Checa se já passou do horário de funcionamento
+		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
+			// Checa se alguém ainda está na academia
+			if(lotacao > 0){
+				flag_cliente_apos_horario = 1;
+				LCD_mensagem_cliente_apos_horario();
+				PORTT ^= (1 << TESTE);		// Inverte o pino de teste			
+			}
+		}
     }
 }
 
