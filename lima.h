@@ -12,7 +12,9 @@
 #define ATR_1600 100
 #define ATR_1000 63
 
-#define ATR_1_SEG 62500
+#define ATR_200_MS 12500
+#define ATR_500_MS 31250
+#define ATR_1000_MS 62500
 
 // Modos do Timer0
 #define T0OVR 0x00	// Modo overflow
@@ -43,6 +45,13 @@
 #define PRE2_128 0x05
 #define PRE2_256 0x06
 #define PRE2_1024 0x07
+
+// Pinos da placa
+#define LED 5		// LED da placa PB5
+
+#define TESTE 0		// Pino para ser utilizado como teste/debug
+#define PORTT PORTC	// Porta em que o pino se localiza
+#define DDRT DDRC	// Registrador de direção da porta do pino
 
 // Pinos do display LCD
 #define RS 7		// RS no pino PD7
