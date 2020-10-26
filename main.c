@@ -47,7 +47,8 @@ void atualiza_hora(){
  *	Imprime o horário atual no display LCD
  */
 void imprime_hora(){
-	LCD_caractere((11 & 0x0F) | LCD_LINHA_UM,CMD);	// Posiciona o cursor
+	LCD_caractere((LCD_HORA & 0x0F) | LCD_LINHA_UM,CMD);	// Posiciona o cursor
+	// Imprime horário, transformando o número em seu equivalente ASCII (+ '0')
 	LCD_caractere(horas[0] + '0',DADO);
 	LCD_caractere(horas[1] + '0',DADO);
 	LCD_caractere(':',DADO);
@@ -59,7 +60,8 @@ void imprime_hora(){
  *	Imprime a lotação atual no display LCD
  */
 void imprime_lotacao(){
-	LCD_caractere((15 & 0x0F) | LCD_LINHA_DOIS,CMD); // Posiciona o cursor
+	LCD_caractere((LCD_LOTACAO & 0x0F) | LCD_LINHA_DOIS,CMD); // Posiciona o cursor
+	// Imprime lotação, transformando o número em seu equivalente ASCII (+ '0')
 	LCD_caractere(lotacao + '0',DADO);
 }
 
@@ -76,6 +78,9 @@ void LCD_mensagem_padrao(){
 	imprime_lotacao();
 }
 
+/* LCD_mensagem_cliente_apos_horario:
+ * Imprime uma mensagem avisando que existem clientes após fechamento
+ */
 void LCD_mensagem_cliente_apos_horario(){
 	LCD_caractere(LCD_LINHA_UM,CMD);	// Posiciona o cursor na primeira linha
 	LCD_string("AVISO:     ");
@@ -106,6 +111,16 @@ ISR(TIMER1_OVF_vect){
 	if(flag_cliente_apos_horario == 1){
 		//PORTT ^= (1 << TESTE);		// Inverte o pino de teste
 		PORTB ^= (1 << LED);	// Inverte o LED
+	}
+}
+
+/* EEPROM_carrega_horarios:
+ * Carrega a lista de horários na EEPROM
+ */
+void EEPROM_carrega_horarios(unsigned char lista_horarios[]){
+	short i;
+	for(i = 0; i < TOTAL_CLIENTES; i++){
+		EEPROM_escrita(i, lista_horarios[i]);
 	}
 }
 
@@ -155,14 +170,30 @@ int main(void){
 		'P'
 	};
 	
-	volatile unsigned char dado;
+	unsigned char lista_horarios [11] = {
+		// Conta master vira '*', código 42 (0x2A) ASCII
+		'*',	
+		'2',
+		'3',
+		'*',
+		'5',
+		'9',
+		'0',
+		'*',
+		'6',
+		'0',
+		'2'
+	};
+	
 	// EEPROM
 	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)
-	escreve_EEPROM(0x02,0x84);
-	escreve_EEPROM(0x11,0xAB);
-	escreve_EEPROM(0x00,ATR_800);
-	// Le o atraso da EEPROM
-	dado = le_EEPROM(0x00);
+	EEPROM_carrega_horarios(lista_horarios);
+	
+	unsigned char teste_horarios[TOTAL_CLIENTES];
+	short i;
+	for(i = 0; i < TOTAL_CLIENTES; i++){
+		teste_horarios[i] = EEPROM_leitura(i);
+	}
 	
 	// Configuração Timer0
 	TCCR0A = T0OVR;			// Modo do Timer0
@@ -186,6 +217,9 @@ int main(void){
 	DDRT |= (1 << TESTE);	// Seta pino de teste como output
 	PORTT &= ~(1 << TESTE);	// Inicializa o pino de teste em zero
 	
+	DDRC = 0xFF;			// Seta PORTC como saída para testar EEPROM
+	PORTC = 0x00;			// Inicializa PORTC em zero
+	
 	// Inicialização dos pinos do LCD
 	DDRB |= 0x0F;			// Seta os pinos de dados do LCD como output (PORT B)
 	DDRD |= (1 << RS);		// Seta o pino de RS do LCD como output (PORT D)
@@ -196,15 +230,17 @@ int main(void){
 	DDRD &= ~(0x70);		// Seta as colunas do teclado como input (PORT D)
 	
 	init_display();
-	LCD_string("LCD teste");
-	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("Segunda linha");
-	
 	LCD_mensagem_padrao();
 	
-	sei();					// Habilita interrupções
+	//sei();					// Habilita interrupções
 	TCNT1 = 65536 - ATR_500_MS;
 	
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	
+	for(i = 0; i < TOTAL_CLIENTES; i++){
+		LCD_caractere(teste_horarios[i],DADO);
+	}
+
     while (1){
 		// Checa se já passou do horário de funcionamento
 		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){

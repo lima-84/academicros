@@ -4,7 +4,7 @@
 // Tempo de bounce em ms
 #define BOUNCE 8
 
-// Número de contagens dos atrasos
+// Número de contagens dos atrasos (PRESCALER=256)
 #define ATR_800 50
 #define ATR_1200 75
 
@@ -67,11 +67,14 @@
 // Comandos de posicionamento do display LCD
 #define LCD_LINHA_UM 0x80	// Coloca o cursor na linha um
 #define LCD_LINHA_DOIS 0xC0	// Coloca o cursor na linha dois
-//#define LCD_HORA
-//#define LCD_LOTACAO
+#define LCD_HORA 11			// Coloca o cursor na coluna das horas
+#define LCD_LOTACAO 15		// Coloca o cursor na coluna da lotação
 
+// Flag de comando/dado para o display LCD
 #define CMD 0				// Valor do flag para envio de comando
 #define DADO 1				// Valor do flag para envio de dado
+
+#define TOTAL_CLIENTES 11	// Número total de clientes
 
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
@@ -206,10 +209,10 @@ volatile unsigned char debounce(volatile unsigned char tecla){
 	return tecla;
 }
 
-/* escreve_EEPROM: 
+/* EEPROM_escrita: 
  * Escreve um dado em um determinado endereço na EEPROM do chip
  */
-void escreve_EEPROM(volatile unsigned short endereco, volatile unsigned char dado){
+void EEPROM_escrita(volatile unsigned short endereco, volatile unsigned char dado){
 	// EEPE: 1 -> escrita	0 -> leitura
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
 	EEAR = endereco;					// HIGH e LOW, mas pode ser feito diretamente
@@ -218,10 +221,10 @@ void escreve_EEPROM(volatile unsigned short endereco, volatile unsigned char dad
 	EECR |= (1 << EEPE);				// Inicia o processo de escrita
 }
 
-/* le_EEPROM: 
+/* EEPROM_leitura: 
  * Lê um determinado endereço da EEPROM do chip
  */
-volatile unsigned char le_EEPROM(volatile unsigned short endereco){
+volatile unsigned char EEPROM_leitura(volatile unsigned short endereco){
 	
 	volatile unsigned char dado;
 	
