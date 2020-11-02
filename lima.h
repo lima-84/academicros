@@ -76,6 +76,15 @@
 
 #define TOTAL_CLIENTES 11	// Número total de clientes
 
+// Linhas e colunas do teclado
+#define LIN1 0
+#define LIN2 1
+#define LIN3 2
+#define LIN4 3
+#define COL1 4
+#define COL2 5
+#define COL3 6
+
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
  * n = 256 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
@@ -190,15 +199,80 @@ void init_display(){
 	atraso_timer0(256 - ATR_1600);	// Atraso extra de 1600us para o CLEAR
 }
 
+volatile unsigned char checar_teclado(){
+
+	// Verifica números da primeira coluna
+	PORTD &= ~(1 << COL1);
+	if(~PIND & (1 << LIN1)){			// Verifica se a linha 1 foi pressionada
+		PORTD |= (1 << COL1);
+		return 1;
+	}
+	else if(~PIND & (1 << LIN2)){		// Verifica se a linha 2 foi pressionada
+		PORTD |= (1 << COL1);
+		return 5;
+	}
+	else if(~PIND & (1 << LIN3)){		// Verifica se a linha 3 foi pressionada
+		PORTD |= (1 << COL1);
+		return 7;
+	}
+	/*else if(~PIND & (1 << LIN4)){		// Verifica se a linha 4 foi pressionada
+		PORTD |= (1 << COL1);
+		return '*';
+	}*/
+	PORTD |= (1 << COL1);
+	
+	// Verifica números da segunda coluna
+	PORTD &= ~(1 << COL2);
+	if(~PIND & (1 << LIN1)){			// Verifica se a linha 1 foi pressionada
+		PORTD |= (1 << COL2);
+		return 2;
+	}
+	else if(~PIND & (1 << LIN2)){		// Verifica se a linha 2 foi pressionada
+		PORTD |= (1 << COL2);
+		return 5;
+	}
+	else if(~PIND & (1 << LIN3)){		// Verifica se a linha 3 foi pressionada
+		PORTD |= (1 << COL2);
+		return 8;
+	}
+	else if(~PIND & (1 << LIN4)){		// Verifica se a linha 4 foi pressionada
+		PORTD |= (1 << COL2);
+		return 0;
+	}
+	PORTD |= (1 << COL2);
+	
+	// Verifica números da terceira coluna
+	PORTD &= ~(1 << COL3);
+	if(~PIND & (1 << LIN1)){			// Verifica se a linha 1 foi pressionada
+		PORTD |= (1 << COL3);
+		return 3;
+	}
+	else if(~PIND & (1 << LIN2)){		// Verifica se a linha 2 foi pressionada
+		PORTD |= (1 << COL3);
+		return 6;
+	}
+	else if(~PIND & (1 << LIN3)){		// Verifica se a linha 3 foi pressionada
+		PORTD |= (1 << COL3);
+		return 9;
+	}
+	/*else if(~PIND & (1 << LIN4)){		// Verifica se a linha 4 foi pressionada
+		PORTD |= (1 << COL3);
+		return '#';
+	}*/
+	PORTD |= (1 << COL3);
+	
+	return 'a';							// Retorna 'a' caso nenhuma tecla seja pressionada
+}
+
 /* debounce:
  * Faz o debounce da tecla lida
  */
-volatile unsigned char debounce(volatile unsigned char tecla){
+volatile unsigned char debounce(){
 	
-	volatile unsigned char contador = 0, tecla_anterior = 0;
+	volatile unsigned char contador = 0, tecla_anterior = 0, tecla;
 	while(contador < 8){
-		atraso_timer0(256 - ATR_1000);// Atraso de 1ms
-		tecla = 0;				// Lê o teclado
+		atraso_timer0(256 - ATR_1000);	// Atraso de 1ms
+		tecla = checar_teclado();		// Lê o teclado
 		// Checa se a tecla se repetiu
 		if(tecla == tecla_anterior){ contador++; }
 		else{ contador = 0; }

@@ -2,7 +2,7 @@
 #include <avr/interrupt.h>
 #include "lima.h"
 
-char horas[2] = {2,2}, minutos[2] = {5,5}, lotacao = 3;
+char horas[2] = {0,8}, minutos[2] = {5,5}, lotacao = 3;
 volatile char flag_cliente_apos_horario = 0;
 volatile char flag_adm = 0, flag_atualiza_horario = 0;
 
@@ -226,8 +226,8 @@ int main(void){
 	DDRB |= (1 << EN);		// Seta o pino de EN do LCD como output (PORT B)
 	
 	// Inicialização dos pinos do teclado
-	DDRD |=	0x0F;			// Seta as linhas do teclado como output (PORT D)
-	DDRD &= ~(0x70);		// Seta as colunas do teclado como input (PORT D)
+	DDRD &=	~(0x0F);		// Seta as linhas do teclado como input (PORT D)
+	DDRD |= 0x70;			// Seta as colunas do teclado como output (PORT D)
 	
 	init_display();
 	LCD_mensagem_padrao();
@@ -237,9 +237,9 @@ int main(void){
 	
 	LCD_caractere(LCD_LINHA_UM,CMD);
 	
-	for(i = 0; i < TOTAL_CLIENTES; i++){
+	/*for(i = 0; i < TOTAL_CLIENTES; i++){
 		LCD_caractere(teste_horarios[i],DADO);
-	}
+	}*/
 
     while (1){
 		// Checa se já passou do horário de funcionamento
@@ -250,6 +250,12 @@ int main(void){
 				LCD_mensagem_cliente_apos_horario();
 				PORTT ^= (1 << TESTE);		// Inverte o pino de teste			
 			}
+		}
+		volatile unsigned char ttecla = debounce();
+		
+		LCD_caractere(LCD_LINHA_UM,CMD);
+		if(ttecla != 'a'){
+			LCD_caractere(ttecla + '0',DADO);
 		}
     }
 }
