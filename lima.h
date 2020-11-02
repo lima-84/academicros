@@ -4,7 +4,7 @@
 // Tempo de bounce em ms
 #define BOUNCE 8
 
-// Número de contagens dos atrasos
+// Número de contagens dos atrasos (PRESCALER=256)
 #define ATR_800 50
 #define ATR_1200 75
 
@@ -67,11 +67,19 @@
 // Comandos de posicionamento do display LCD
 #define LCD_LINHA_UM 0x80	// Coloca o cursor na linha um
 #define LCD_LINHA_DOIS 0xC0	// Coloca o cursor na linha dois
-//#define LCD_HORA
-//#define LCD_LOTACAO
+#define LCD_HORA 11			// Coloca o cursor na coluna das horas
+#define LCD_LOTACAO 15		// Coloca o cursor na coluna da lotação
 
+// Flag de comando/dado para o display LCD
 #define CMD 0				// Valor do flag para envio de comando
 #define DADO 1				// Valor do flag para envio de dado
+
+#define TOTAL_CLIENTES 11	// Número total de clientes
+
+// Linhas e colunas do teclado
+#define COL1 0x60
+#define COL2 0x50
+#define COL3 0x30
 
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
@@ -186,30 +194,75 @@ void init_display(){
 	LCD_caractere(LCD_CLEAR,CMD);	
 	atraso_timer0(256 - ATR_1600);	// Atraso extra de 1600us para o CLEAR
 }
-
-/* debounce:
- * Faz o debounce da tecla lida
+/* TCL_trata_tecla:
+ * Retorna o dígito correspondente à tecla do teclado apertada
  */
-volatile unsigned char debounce(volatile unsigned char tecla){
-	
-	volatile unsigned char contador = 0, tecla_anterior = 0;
-	while(contador < 8){
-		atraso_timer0(256 - ATR_1000);// Atraso de 1ms
-		tecla = 0;				// Lê o teclado
-		// Checa se a tecla se repetiu
-		if(tecla == tecla_anterior){ contador++; }
-		else{ contador = 0; }
-		// Checa se o contador atingiu o valor de bounce
-		if(contador == 8){ break; }
-		tecla_anterior = tecla;		
+volatile unsigned char TCL_trata_tecla(volatile unsigned char tecla, volatile unsigned char linha){
+	// Checa a coluna e, em seguida, a linha
+	switch(tecla){
+		case COL1:
+			switch(linha){
+				case 0: return '1'; break;
+				case 1: return '4'; break;
+				case 2: return '7'; break;
+				case 3: return '*'; break;
+			}
+		break;
+		
+		case COL2:
+			switch(linha){
+				case 0: return '2'; break;
+				case 1: return '5'; break;
+				case 2: return '8'; break;
+				case 3: return '0'; break;
+			}
+		break;
+		
+		case COL3:
+			switch(linha){
+				case 0: return '3'; break;
+				case 1: return '6'; break;
+				case 2: return '9'; break;
+				case 3: return '#'; break;
+			}
+			break;
+		// Caso nenhuma tecla for apertada
+		case 0x70: return ' ';
 	}
-	return tecla;
+	// Retorna, por segurança, um indicador de erro caso haja algum problema na leitura
+	return 'E';
+	
 }
 
-/* escreve_EEPROM: 
+/* TCL_checa_teclado:
+ * Realiza a leitura do teclado, retornando o caractere pressionado
+ */
+volatile unsigned char TCL_checa_teclado(){
+	
+	volatile unsigned char tecla = 'x', linha = 0;
+		
+	while(linha < 4){
+		// Lê a i-ésima linha
+		PORTD &= ~(1 << linha);
+		tecla = PIND & (0x70);
+		PORTD |= (1 << linha);
+		
+		if(tecla == 0x70){ // Se nada nesta linha foi apertado
+			linha++;
+		}
+		else{
+			return TCL_trata_tecla(tecla,linha);
+		}
+	}
+	// Retorna um espaço, indicador de que nada foi apertado
+	return ' ';
+	
+}
+
+/* EEPROM_escrita: 
  * Escreve um dado em um determinado endereço na EEPROM do chip
  */
-void escreve_EEPROM(volatile unsigned short endereco, volatile unsigned char dado){
+void EEPROM_escrita(volatile unsigned short endereco, volatile unsigned char dado){
 	// EEPE: 1 -> escrita	0 -> leitura
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
 	EEAR = endereco;					// HIGH e LOW, mas pode ser feito diretamente
@@ -218,10 +271,10 @@ void escreve_EEPROM(volatile unsigned short endereco, volatile unsigned char dad
 	EECR |= (1 << EEPE);				// Inicia o processo de escrita
 }
 
-/* le_EEPROM: 
+/* EEPROM_leitura: 
  * Lê um determinado endereço da EEPROM do chip
  */
-volatile unsigned char le_EEPROM(volatile unsigned short endereco){
+volatile unsigned char EEPROM_leitura(volatile unsigned short endereco){
 	
 	volatile unsigned char dado;
 	
