@@ -184,7 +184,7 @@ int main(void){
 		'0',
 		'2'
 	};
-	
+
 	// EEPROM
 	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)
 	EEPROM_carrega_horarios(lista_horarios);
@@ -226,13 +226,15 @@ int main(void){
 	DDRB |= (1 << EN);		// Seta o pino de EN do LCD como output (PORT B)
 	
 	// Inicialização dos pinos do teclado
-	DDRD &=	~(0x0F);		// Seta as linhas do teclado como input (PORT D)
-	DDRD |= 0x70;			// Seta as colunas do teclado como output (PORT D)
+	DDRD |=	0x0F;			// Seta as linhas do teclado como output (PORT D)
+	DDRD &= ~(0x70);		// Seta as colunas do teclado como input (PORT D)
+	PORTD |= 0x0F;			// Inicializa as linhas do teclado
+	PIND |= 0x70;			// Aciona resistores de pull-up das colunas
 	
 	init_display();
 	LCD_mensagem_padrao();
 	
-	//sei();					// Habilita interrupções
+	sei();					// Habilita interrupções
 	TCNT1 = 65536 - ATR_500_MS;
 	
 	LCD_caractere(LCD_LINHA_UM,CMD);
@@ -241,7 +243,9 @@ int main(void){
 		LCD_caractere(teste_horarios[i],DADO);
 	}*/
 
-    while (1){
+	volatile unsigned char tecla = 0;
+    
+	while (1){
 		// Checa se já passou do horário de funcionamento
 		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
 			// Checa se alguém ainda está na academia
@@ -251,12 +255,14 @@ int main(void){
 				PORTT ^= (1 << TESTE);		// Inverte o pino de teste			
 			}
 		}
-		volatile unsigned char ttecla = debounce();
 		
-		LCD_caractere(LCD_LINHA_UM,CMD);
-		if(ttecla != 'a'){
-			LCD_caractere(ttecla + '0',DADO);
+		tecla = TCL_checa_teclado();
+		if(tecla != ' ' && tecla != 'E'){
+			LCD_caractere(LCD_LINHA_UM,CMD);
+			LCD_caractere(tecla,DADO);
 		}
+		//atraso_timer1(65536 - ATR_200_MS);
+		
     }
 }
 

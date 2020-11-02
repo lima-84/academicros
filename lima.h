@@ -77,13 +77,9 @@
 #define TOTAL_CLIENTES 11	// Número total de clientes
 
 // Linhas e colunas do teclado
-#define LIN1 0
-#define LIN2 1
-#define LIN3 2
-#define LIN4 3
-#define COL1 4
-#define COL2 5
-#define COL3 6
+#define COL1 0x60
+#define COL2 0x50
+#define COL3 0x30
 
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
@@ -198,89 +194,69 @@ void init_display(){
 	LCD_caractere(LCD_CLEAR,CMD);	
 	atraso_timer0(256 - ATR_1600);	// Atraso extra de 1600us para o CLEAR
 }
-
-volatile unsigned char checar_teclado(){
-
-	// Verifica números da primeira coluna
-	PORTD &= ~(1 << COL1);
-	if(~PIND & (1 << LIN1)){			// Verifica se a linha 1 foi pressionada
-		PORTD |= (1 << COL1);
-		return 1;
+/* TCL_trata_tecla:
+ * Retorna o dígito correspondente à tecla do teclado apertada
+ */
+volatile unsigned char TCL_trata_tecla(volatile unsigned char tecla, volatile unsigned char linha){
+	// Checa a coluna e, em seguida, a linha
+	switch(tecla){
+		case COL1:
+			switch(linha){
+				case 0: return '1'; break;
+				case 1: return '4'; break;
+				case 2: return '7'; break;
+				case 3: return '*'; break;
+			}
+		break;
+		
+		case COL2:
+			switch(linha){
+				case 0: return '2'; break;
+				case 1: return '5'; break;
+				case 2: return '8'; break;
+				case 3: return '0'; break;
+			}
+		break;
+		
+		case COL3:
+			switch(linha){
+				case 0: return '3'; break;
+				case 1: return '6'; break;
+				case 2: return '9'; break;
+				case 3: return '#'; break;
+			}
+			break;
+		// Caso nenhuma tecla for apertada
+		case 0x70: return ' ';
 	}
-	else if(~PIND & (1 << LIN2)){		// Verifica se a linha 2 foi pressionada
-		PORTD |= (1 << COL1);
-		return 5;
-	}
-	else if(~PIND & (1 << LIN3)){		// Verifica se a linha 3 foi pressionada
-		PORTD |= (1 << COL1);
-		return 7;
-	}
-	/*else if(~PIND & (1 << LIN4)){		// Verifica se a linha 4 foi pressionada
-		PORTD |= (1 << COL1);
-		return '*';
-	}*/
-	PORTD |= (1 << COL1);
+	// Retorna, por segurança, um indicador de erro caso haja algum problema na leitura
+	return 'E';
 	
-	// Verifica números da segunda coluna
-	PORTD &= ~(1 << COL2);
-	if(~PIND & (1 << LIN1)){			// Verifica se a linha 1 foi pressionada
-		PORTD |= (1 << COL2);
-		return 2;
-	}
-	else if(~PIND & (1 << LIN2)){		// Verifica se a linha 2 foi pressionada
-		PORTD |= (1 << COL2);
-		return 5;
-	}
-	else if(~PIND & (1 << LIN3)){		// Verifica se a linha 3 foi pressionada
-		PORTD |= (1 << COL2);
-		return 8;
-	}
-	else if(~PIND & (1 << LIN4)){		// Verifica se a linha 4 foi pressionada
-		PORTD |= (1 << COL2);
-		return 0;
-	}
-	PORTD |= (1 << COL2);
-	
-	// Verifica números da terceira coluna
-	PORTD &= ~(1 << COL3);
-	if(~PIND & (1 << LIN1)){			// Verifica se a linha 1 foi pressionada
-		PORTD |= (1 << COL3);
-		return 3;
-	}
-	else if(~PIND & (1 << LIN2)){		// Verifica se a linha 2 foi pressionada
-		PORTD |= (1 << COL3);
-		return 6;
-	}
-	else if(~PIND & (1 << LIN3)){		// Verifica se a linha 3 foi pressionada
-		PORTD |= (1 << COL3);
-		return 9;
-	}
-	/*else if(~PIND & (1 << LIN4)){		// Verifica se a linha 4 foi pressionada
-		PORTD |= (1 << COL3);
-		return '#';
-	}*/
-	PORTD |= (1 << COL3);
-	
-	return 'a';							// Retorna 'a' caso nenhuma tecla seja pressionada
 }
 
-/* debounce:
- * Faz o debounce da tecla lida
+/* TCL_checa_teclado:
+ * Realiza a leitura do teclado, retornando o caractere pressionado
  */
-volatile unsigned char debounce(){
+volatile unsigned char TCL_checa_teclado(){
 	
-	volatile unsigned char contador = 0, tecla_anterior = 0, tecla;
-	while(contador < 8){
-		atraso_timer0(256 - ATR_1000);	// Atraso de 1ms
-		tecla = checar_teclado();		// Lê o teclado
-		// Checa se a tecla se repetiu
-		if(tecla == tecla_anterior){ contador++; }
-		else{ contador = 0; }
-		// Checa se o contador atingiu o valor de bounce
-		if(contador == 8){ break; }
-		tecla_anterior = tecla;		
+	volatile unsigned char tecla = 'x', linha = 0;
+		
+	while(linha < 4){
+		// Lê a i-ésima linha
+		PORTD &= ~(1 << linha);
+		tecla = PIND & (0x70);
+		PORTD |= (1 << linha);
+		
+		if(tecla == 0x70){ // Se nada nesta linha foi apertado
+			linha++;
+		}
+		else{
+			return TCL_trata_tecla(tecla,linha);
+		}
 	}
-	return tecla;
+	// Retorna um espaço, indicador de que nada foi apertado
+	return ' ';
+	
 }
 
 /* EEPROM_escrita: 
