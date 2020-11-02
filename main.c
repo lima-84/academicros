@@ -2,7 +2,7 @@
 #include <avr/interrupt.h>
 #include "lima.h"
 
-char horas[2] = {0,8}, minutos[2] = {5,5}, lotacao = 3;
+char horas[2] = {1,3}, minutos[2] = {5,5}, lotacao = 3;
 volatile char flag_cliente_apos_horario = 0;
 volatile char flag_adm = 0, flag_atualiza_horario = 0;
 
@@ -89,6 +89,71 @@ void LCD_mensagem_cliente_apos_horario(){
 	LCD_string("Pessoas dentro:");
 }
 
+void LCD_mensagem_erro_login(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Erro de login  ");
+	
+}
+
+void LCD_mensagem_erro_senha(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Erro de senha  ");
+}
+
+void LCD_mensagem_erro_conta(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Erro de conta  ");
+}
+
+void LCD_mensagem_erro_lotacao(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Local lotado  ");
+}
+
+void LCD_mensagem_erro_horario(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Fechado       ");
+}
+
+void LCD_mensagem_adm_opcoes(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("*-Hora     ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("#-Cliente      ");
+}
+
+void LCD_mensagem_adm_horario(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("*-Hora    ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Horario:       ");
+}
+
+void LCD_mensagem_adm_cliente(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("#-Cliente  ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Cliente:       ");
+}
+
 /* ISR(TIMER1_OVF_vect):
  * Trata interrupção por overflow do Timer1, atualiza a hora no display LCD
  * Tempo de execução da função ~1ms
@@ -111,6 +176,7 @@ ISR(TIMER1_OVF_vect){
 	if(flag_cliente_apos_horario == 1){
 		//PORTT ^= (1 << TESTE);		// Inverte o pino de teste
 		PORTB ^= (1 << LED);	// Inverte o LED
+		LCD_mensagem_cliente_apos_horario();
 	}
 }
 
@@ -251,17 +317,36 @@ int main(void){
 			// Checa se alguém ainda está na academia
 			if(lotacao > 0){
 				flag_cliente_apos_horario = 1;
-				LCD_mensagem_cliente_apos_horario();
 				PORTT ^= (1 << TESTE);		// Inverte o pino de teste			
 			}
 		}
 		
 		tecla = TCL_checa_teclado();
-		if(tecla != ' ' && tecla != 'E'){
-			LCD_caractere(LCD_LINHA_UM,CMD);
-			LCD_caractere(tecla,DADO);
+	
+		if(tecla == '1'){
+			LCD_mensagem_erro_login();
 		}
-		//atraso_timer1(65536 - ATR_200_MS);
+		if(tecla == '2'){
+			LCD_mensagem_erro_senha();
+		}
+		if(tecla == '3'){
+			LCD_mensagem_erro_conta();
+		}
+		if(tecla == '4'){
+			LCD_mensagem_erro_lotacao();
+		}
+		if(tecla == '5'){
+			LCD_mensagem_erro_horario();
+		}
+		if(tecla == '6'){
+			LCD_mensagem_adm_opcoes();
+		}
+		if(tecla == '7'){
+			LCD_mensagem_adm_horario();
+		}
+		if(tecla == '8'){
+			LCD_mensagem_adm_cliente();
+		}
 		
     }
 }

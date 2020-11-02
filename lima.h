@@ -239,18 +239,32 @@ volatile unsigned char TCL_trata_tecla(volatile unsigned char tecla, volatile un
  */
 volatile unsigned char TCL_checa_teclado(){
 	
-	volatile unsigned char tecla = 'x', linha = 0;
-		
+	volatile unsigned char tecla = 'x', ult_tecla = 0, linha = 0;
+	volatile unsigned int count = 0;
+	
 	while(linha < 4){
 		// Lê a i-ésima linha
 		PORTD &= ~(1 << linha);
 		tecla = PIND & (0x70);
-		PORTD |= (1 << linha);
 		
 		if(tecla == 0x70){ // Se nada nesta linha foi apertado
+			PORTD |= (1 << linha);
 			linha++;
 		}
 		else{
+			while(count < BOUNCE){					// Trata o bouncing da tecla
+				atraso_timer0(256 - ATR_1000);		// Atraso de 1ms
+				tecla = PIND & (0x70);
+				if(tecla == ult_tecla)
+					count++;
+				else
+					count = 0;
+				ult_tecla = tecla;
+			}
+			while(tecla == (PIND & (0x70)));		// Caso o usuário mantenha a tecla pressionada
+			PORTT ^= (1 << TESTE);					// LED de teste
+			
+			PORTD |= (1 << linha);					// Desativa a linha
 			return TCL_trata_tecla(tecla,linha);
 		}
 	}
