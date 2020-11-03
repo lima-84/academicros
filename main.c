@@ -242,14 +242,14 @@ void cliente_saida(short num_cliente, short *lista_horarios, short *lista_hora_e
 	//conversao de char pra short da hora atual 
 	short t_atual_minutos = ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
 	
-	short t_dentro;									//numero de minutos que o cliente ficou dentro
-	if(t_atual_minutos < lista_hora_entrada[num_cliente]){					//se o cliente estiver saindo depois da meia noite
-		t_atual_minutos = t_atual_minutos + 1440;											//adiciona 24 horas na hora atual pra fazer os calculos
+	short t_dentro;											//numero de minutos que o cliente ficou dentro
+	if(t_atual_minutos < lista_hora_entrada[num_cliente]){	//se o cliente estiver saindo depois da meia noite
+		t_atual_minutos = t_atual_minutos + 1440;			//adiciona 24 horas na hora atual pra fazer os calculos
 	}
 	
 	t_dentro = t_atual_minutos - lista_hora_entrada[num_cliente];
 	
-	if(t_dentro >= lista_horarios[num_cliente]){							//se o cliente estourar o numero de horas
+	if(t_dentro >= lista_horarios[num_cliente]){		//se o cliente estourar o numero de horas
 		lista_horarios[num_cliente] = 0;				//zera as horas restantes na conta
 		lista_planos[num_cliente] = 'X';				//deixa a conta do cliente bloqueada
 	}
@@ -323,7 +323,7 @@ int main(void){
 	
 	unsigned short lista_hora_entrada [11] = {		//mostra que horas (na vdd minutos) cada cliente entrou, conta master e bloqueada tem 0
 		0,	
-		1000,
+		835,
 		1700,
 		0,
 		2200,
@@ -333,6 +333,20 @@ int main(void){
 		1345,
 		0,
 		1640
+	};
+	
+	short lista_clientes_dentro [11] = {
+		0,
+		1,
+		0,
+		1,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
 	};
 	
 
@@ -405,6 +419,7 @@ int main(void){
 	volatile unsigned char tecla = 0;
     volatile unsigned char flag_cliente_validado = 0;
 	volatile short cliente_atual = 0, senha_atual = 0, indice_cliente = 0;
+	char str[10];
 	
 	while (1){
 		// Checa se já passou do horário de funcionamento
@@ -421,7 +436,6 @@ int main(void){
 			flag_tecla_digitada = 1;
 			LCD_mensagem_login();
 		}
-		
 		if(flag_tecla_digitada == 1){
 			// Lê e imprime números do teclado
 			cliente_atual =	user_input(5,0);
@@ -432,18 +446,41 @@ int main(void){
 			else{
 				// Se não for administrador, valida o cliente
 				indice_cliente = valida_cliente(cliente_atual, lista_clientes);
+				LCD_caractere(' ',DADO);
+				LCD_caractere(indice_cliente + '0',DADO);
 			}
+			
 			
 			// Se for um usuário válido ou o administrador
 			if(flag_adm == 1 || indice_cliente != 'E'){
-				// Pede a senha
-				LCD_mensagem_senha();
-				senha_atual = user_input(5,1);
-				if(senha_atual == lista_clientes[indice_cliente]){
-					LCD_string(" OK:)");
+				// Se o cliente já estava dentro, efetiva a saída
+				if(lista_clientes_dentro[indice_cliente] == 1){
+					lista_clientes_dentro[indice_cliente] = 0;
+					
+					itoa(lista_horarios[indice_cliente],str,10);
+					LCD_caractere(LCD_LINHA_UM,CMD);
+					LCD_string(str);
+					
+					cliente_saida(indice_cliente,lista_horarios,lista_hora_entrada,lista_planos);
+					
+					itoa(lista_horarios[indice_cliente],str,10);
+					LCD_caractere(LCD_LINHA_DOIS,CMD);
+					LCD_string(str);
+					
+					imprime_hora();
+					
 				}
 				else{
-					LCD_mensagem_erro_senha();
+					// Pede a senha
+					LCD_mensagem_senha();
+					senha_atual = user_input(5,1);
+					if(senha_atual == lista_clientes[indice_cliente]){
+						LCD_string(" OK:)");
+					
+					}
+					else{
+						LCD_mensagem_erro_senha();
+					}
 				}
 			}
 			else{
@@ -451,43 +488,11 @@ int main(void){
 			}
 			
 		}
-		
-		
-		/*if(flag_tecla_digitada == 1){
-			if(tecla == '1'){
-				LCD_mensagem_erro_login();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '2'){
-				LCD_mensagem_erro_senha();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '3'){
-				LCD_mensagem_erro_conta();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '4'){
-				LCD_mensagem_erro_lotacao();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '5'){
-				LCD_mensagem_erro_horario();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '6'){
-				LCD_mensagem_adm_opcoes();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '7'){
-				LCD_mensagem_adm_horario();
-				flag_tecla_digitada = 0;
-			}
-			if(tecla == '8'){
-				LCD_mensagem_adm_cliente();
-				flag_tecla_digitada = 0;
-			}
-		}*/
-		
+		/*		
+		LCD_caractere(LCD_CSTATIC,CMD);
+		flag_tecla_digitada = 0;
+		LCD_mensagem_padrao();
+		*/		
     }
 }
 
