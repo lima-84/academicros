@@ -313,6 +313,23 @@ int valida_cliente(volatile short int input, volatile const short lista[11]){
 	return 'E';
 }
 
+int hhmm_para_minutos(char* horas, char* minutos){
+	
+	return ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
+	
+}
+
+void minutos_para_hhmm(int total_minutos, char* str_horas, char* str_minutos){
+	
+	short num_horas, num_minutos;
+	
+	num_horas = total_minutos/60;
+	num_minutos = total_minutos%60;
+	
+	itoa(num_horas,str_horas,10);
+	itoa(num_minutos,str_minutos,10);	
+}
+
 /* EEPROM_escrita: 
  * Escreve um dado em um determinado endereço na EEPROM do chip
  */

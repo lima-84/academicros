@@ -5,7 +5,8 @@
 char horas[2] = {1,3}, minutos[2] = {5,5}, lotacao = 3;
 volatile char flag_cliente_apos_horario = 0;
 volatile char flag_adm = 0, flag_atualiza_horario = 0;
-volatile char flag_tecla_digitada = 0;
+volatile char flag_tecla_digitada = 0, flag_aguarda_msg = 0;
+volatile char flag_cliente_autorizado = 0;
 
 /* atualiza_hora:
  * Incrementa o relógio de um minuto
@@ -109,8 +110,11 @@ void LCD_mensagem_senha(){
 
 
 void LCD_mensagem_erro_login(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("   ERRO!   ");
+	LCD_string("     ERRO!      ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Erro de login  ");
@@ -118,59 +122,94 @@ void LCD_mensagem_erro_login(){
 }
 
 void LCD_mensagem_erro_senha(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("   ERRO!   ");
+	LCD_string("     ERRO!      ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Erro de senha  ");
 }
 
 void LCD_mensagem_erro_conta(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("   ERRO!   ");
+	LCD_string("     ERRO!      ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Erro de conta  ");
 }
 
 void LCD_mensagem_erro_lotacao(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("   ERRO!   ");
+	LCD_string("     ERRO!      ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Local lotado  ");
 }
 
 void LCD_mensagem_erro_horario(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("   ERRO!   ");
+	LCD_string("     ERRO!      ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Fechado       ");
 }
 
 void LCD_mensagem_adm_opcoes(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("1-Hora     ");
+	LCD_string("1-Hora          ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("2-Cliente      ");
 }
 
 void LCD_mensagem_adm_horario(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("1-Hora    ");
+	LCD_string("1-Hora          ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("Horario:       ");
+	LCD_string("Horario: ");
 }
 
 void LCD_mensagem_adm_cliente(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("2-Cliente  ");
+	LCD_string("2-Cliente       ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("Cliente:       ");
+	LCD_string("Cliente: ");
+}
+
+void LCD_mensagem_entrada(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("Entrada aprovada");
+
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("                ");
+}
+
+void atraso_mensagem(){
+	for(int i = 0; i < 2500; i++){
+		atraso_timer2(256-ATR_1000);
+	}
 }
 
 /* ISR(TIMER1_OVF_vect):
@@ -211,26 +250,34 @@ void EEPROM_carrega_horarios(unsigned char lista_horarios[]){
 }
 
 //funcao responsavel por ver se o cliente pode entrar no momento, e pelos processos seguintes
-void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_planos){
+char cliente_entrada(short num_cliente, unsigned short *lista_hora_entrada, char *lista_planos){
 	
 	//verifica, respectivamente, se o cliente nao tem conta bloqueada, se a academia ta cheia, ou se a academia ja fechou
 	if(lista_planos[num_cliente] == 'X' || lotacao == 5 || (horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
 		//verifica individualmente cada condicao de impedimento, pra poder mostrar a msg de erro correspondente
 		if(lista_planos[num_cliente] == 'X'){
 			LCD_mensagem_erro_conta();
+			atraso_mensagem();
 		}
 		if(lotacao == 5){
 			LCD_mensagem_erro_lotacao();
+			atraso_mensagem();
 		}
 		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
 			LCD_mensagem_erro_horario();
+			atraso_mensagem();
 		}
+		
+		return 0;
+		
 	}
 	else{						//caso o cliente possa entrar, sao feitos os procedimentos
 		lotacao++;				//incrementa o contador de pessoas dentro da academia
 		
 		//salva horario de entrada, convertendo pra minutos
-		lista_hora_entrada[num_cliente] = ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
+		lista_hora_entrada[num_cliente] = hhmm_para_minutos(horas,minutos);
+		
+		return 1;
 	}
 }
 
@@ -240,7 +287,7 @@ void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_p
 void cliente_saida(short num_cliente, unsigned short *lista_horarios, unsigned short *lista_hora_entrada, char *lista_planos){
 	
 	//conversao de char pra short da hora atual 
-	short t_atual_minutos = ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
+	short t_atual_minutos = hhmm_para_minutos(horas,minutos);
 	
 	short t_dentro;											//numero de minutos que o cliente ficou dentro
 	if(t_atual_minutos < lista_hora_entrada[num_cliente]){	//se o cliente estiver saindo depois da meia noite
@@ -260,7 +307,6 @@ void cliente_saida(short num_cliente, unsigned short *lista_horarios, unsigned s
 
 void LCD_dados_cliente(short cliente, char plano, short tempo_restante){
 	char str_cliente[6], str_horas[4], str_minutos[3];
-	short horas, minutos;
 	
 	LCD_caractere(LCD_LINHA_UM, CMD);
 	LCD_string("Plano ");
@@ -277,21 +323,26 @@ void LCD_dados_cliente(short cliente, char plano, short tempo_restante){
 	LCD_string(str_cliente);
 	LCD_string("  ");
 	
-	horas = tempo_restante/60;		// Divisão inteira resulta no número de horas
-	minutos = tempo_restante%60;	// O resto equivale ao tempo em minutos
-	
-	itoa(horas,str_horas,10);
-	itoa(minutos,str_minutos,10);
-	
-	if(horas < 10)
+	if(plano != 'M'){	
+		minutos_para_hhmm(tempo_restante,str_horas,str_minutos);
+		
+		if(str_horas[1] == '\0')
 		LCD_caractere('0',DADO);
-	LCD_string(str_horas);
-	LCD_caractere(':', DADO);	
-	if(minutos < 10)
+		LCD_string(str_horas);
+		LCD_caractere(':', DADO);
+		if(str_minutos[1] == '\0')
 		LCD_caractere('0',DADO);
-	LCD_string(str_minutos);
+		LCD_string(str_minutos);
+		
+		LCD_string("   ");
+	}
+	else{
+		LCD_string("         ");
+	}
+	
+	atraso_mensagem();
+	
 }
-
 
 int main(void){
 	
@@ -453,6 +504,7 @@ int main(void){
 	volatile unsigned char tecla = 0;
 	volatile short cliente_atual = 0, senha_atual = 0, indice_cliente = 0;
 	char str[10];
+	volatile short horas_adm = 0, minutos_adm = 0, cliente_adm = 0, indice_cliente_adm = 0;
 	
 	while (1){
 		// Checa se já passou do horário de funcionamento
@@ -482,14 +534,13 @@ int main(void){
 				LCD_caractere(' ',DADO);
 				LCD_caractere(indice_cliente + '0',DADO);
 			}
-			
-			
+						
 			// Se for um usuário válido ou o administrador
 			if(flag_adm == 1 || indice_cliente != 'E'){
 				// Se o cliente já estava dentro, efetiva a saída
-				if(lista_clientes_dentro[indice_cliente] == 1){
+				if(lista_clientes_dentro[indice_cliente] == 1 && flag_adm == 0){
 					lista_clientes_dentro[indice_cliente] = 0;
-					
+					// Teste do decremento de horario
 					itoa(lista_horarios[indice_cliente],str,10);
 					LCD_caractere(LCD_LINHA_UM,CMD);
 					LCD_string(str);
@@ -507,13 +558,57 @@ int main(void){
 					// Pede a senha
 					LCD_mensagem_senha();
 					senha_atual = user_input(5,1);
-					LCD_caractere(LCD_CSTATIC,CMD);
-					if(senha_atual == lista_senhas[indice_cliente]){
-						LCD_dados_cliente(lista_clientes[indice_cliente],lista_planos[indice_cliente],lista_horarios[indice_cliente]);
-					
+					if(flag_adm == 0){
+						if(senha_atual == lista_senhas[indice_cliente]){
+							if(cliente_entrada(indice_cliente,lista_hora_entrada,lista_planos) == 1);
+							LCD_mensagem_entrada();
+						}
+						else{
+							LCD_mensagem_erro_senha();
+						}
 					}
 					else{
-						LCD_mensagem_erro_senha();
+						if(senha_atual == 12345){
+							while(flag_adm == 1){
+								LCD_mensagem_adm_opcoes();
+								LCD_caractere(LCD_CBLINK,CMD);
+								while(tecla != '1' && tecla != '2'){
+									tecla = TCL_checa_teclado();	
+								}
+								if(tecla == '1'){
+									LCD_mensagem_adm_horario();
+								
+									LCD_caractere((11 & 0x0F) | LCD_LINHA_DOIS,CMD);
+									LCD_caractere(':',DADO);		
+											
+									LCD_caractere(LCD_CBLINK,CMD);
+									LCD_caractere((9 & 0x0F) | LCD_LINHA_DOIS,CMD);
+									horas_adm = user_input(2,0);
+									LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
+									minutos_adm = user_input(2,0);
+								}
+								else if(tecla == '2'){
+									LCD_mensagem_adm_cliente();
+									LCD_caractere((9 & 0x0F) | LCD_LINHA_DOIS,CMD);								
+									LCD_caractere(LCD_CBLINK,CMD);
+									cliente_adm = user_input(5,0);
+									indice_cliente_adm = valida_cliente(cliente_adm,lista_clientes);
+									if(indice_cliente_adm != 'E'){
+										LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
+									}
+									else{
+										LCD_mensagem_erro_login();
+									}
+								}
+								else if(tecla == '#'){
+									flag_adm = 0;
+								}
+								tecla = 0;
+							}
+						}
+						else{
+							LCD_mensagem_erro_senha();
+						}
 					}
 				}
 			}
@@ -521,12 +616,11 @@ int main(void){
 				LCD_mensagem_erro_login();
 			}
 			
-		}
-		/*		
-		LCD_caractere(LCD_CSTATIC,CMD);
-		flag_tecla_digitada = 0;
-		LCD_mensagem_padrao();
-		*/		
+			atraso_mensagem();
+			flag_tecla_digitada = 0;
+			LCD_mensagem_padrao();
+			
+		}		
     }
 }
 
