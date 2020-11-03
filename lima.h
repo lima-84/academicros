@@ -287,16 +287,30 @@ volatile unsigned char TCL_checa_teclado(){
 	
 }
 
-int user_input(int num_teclas){
+int user_input(int num_teclas, char senha){
 	char input[num_teclas + 1];
 	for(int i = 0; i < num_teclas; i++){
 		char tecla = ' ';
 		while(tecla == ' ' || tecla == 'E')
 			tecla = TCL_checa_teclado();
-		LCD_caractere(tecla, DADO);
+		if(senha == 0){
+			LCD_caractere(tecla, DADO);
+		}
+		else if(senha == 1){
+			LCD_caractere('*',DADO);
+		}
 		input[i] = tecla;
 	}
 	return atoi(input);
+}
+
+int valida_cliente(volatile short int input, volatile const short lista[11]){
+	for(int i = 0; i < 11; i++){
+		if(input == lista[i]){
+			return i;
+		}
+	}
+	return 'E';
 }
 
 /* EEPROM_escrita: 

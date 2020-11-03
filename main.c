@@ -151,15 +151,15 @@ void LCD_mensagem_erro_horario(){
 
 void LCD_mensagem_adm_opcoes(){
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("*-Hora     ");
+	LCD_string("1-Hora     ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("#-Cliente      ");
+	LCD_string("2-Cliente      ");
 }
 
 void LCD_mensagem_adm_horario(){
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("*-Hora    ");
+	LCD_string("1-Hora    ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Horario:       ");
@@ -167,7 +167,7 @@ void LCD_mensagem_adm_horario(){
 
 void LCD_mensagem_adm_cliente(){
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("#-Cliente  ");
+	LCD_string("2-Cliente  ");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Cliente:       ");
@@ -219,7 +219,7 @@ void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_p
 		if(lista_planos[num_cliente] == 'X'){
 			LCD_mensagem_erro_conta();
 		}
-		if( lotacao == 5){
+		if(lotacao == 5){
 			LCD_mensagem_erro_lotacao();
 		}
 		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
@@ -262,7 +262,7 @@ void cliente_saida(short num_cliente, short *lista_horarios, short *lista_hora_e
 int main(void){
 	
 	// Relação de clientes
-	volatile const short lista_clientes [11] =
+	short lista_clientes [11] =
 	{
 		28858,
 		30238,
@@ -276,7 +276,7 @@ int main(void){
 		28857,
 		29140
 	};
-	volatile const short lista_senhas [11] =
+	short lista_senhas [11] =
 	{
 		28858,
 		30238,
@@ -404,7 +404,7 @@ int main(void){
 
 	volatile unsigned char tecla = 0;
     volatile unsigned char flag_cliente_validado = 0;
-	volatile short cliente_atual = 0;
+	volatile short cliente_atual = 0, senha_atual = 0, indice_cliente = 0;
 	
 	while (1){
 		// Checa se já passou do horário de funcionamento
@@ -424,36 +424,31 @@ int main(void){
 		
 		if(flag_tecla_digitada == 1){
 			// Lê e imprime números do teclado
-			//cliente_atual =	user_input(5);
+			cliente_atual =	user_input(5,0);
 			if(cliente_atual == 12345){
 				// Se for administrador, seta o flag_adm
 				flag_adm = 1;
 			}
 			else{
 				// Se não for administrador, valida o cliente
-				//indice_cliente = valida_cliente(cliente_atual);
+				indice_cliente = valida_cliente(cliente_atual, lista_clientes);
 			}
-			char flag_login = 0;
-			int input = user_input(5);
 			
-			for(int i = 0; i < 11; i++){
-				if(input == lista_clientes[i]){
-					flag_login = 1;
-					break;
+			// Se for um usuário válido ou o administrador
+			if(flag_adm == 1 || indice_cliente != 'E'){
+				// Pede a senha
+				LCD_mensagem_senha();
+				senha_atual = user_input(5,1);
+				if(senha_atual == lista_clientes[indice_cliente]){
+					LCD_string(" OK:)");
+				}
+				else{
+					LCD_mensagem_erro_senha();
 				}
 			}
-						
-			LCD_caractere(LCD_LINHA_UM, CMD);
-			if(flag_login == 1)
-				LCD_string("ta la");
-			else
-				LCD_string("n ta la");
-			// Se for um usuário válido ou o administrador
-			//if(flag_adm == 1 || indice_cliente != 'E'){
-				// Pede a senha
-				//LCD_mensagem_senha();
-				//senha_atual = teclas(5,senha);
-			//}
+			else{
+				LCD_mensagem_erro_login();
+			}
 			
 		}
 		
