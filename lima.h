@@ -1,6 +1,8 @@
 #ifndef LIMA_H_
 #define LIMA_H_
 
+#include <stdlib.h>
+
 // Tempo de bounce em ms
 #define BOUNCE 8
 
@@ -87,8 +89,8 @@
 #define COL3 0x30
 
 //Minutos para diferentes contas
-#define MIN_BASICA 3600;
-#define MIN_PREMIUM 5400;
+#define MIN_BASICA 3600
+#define MIN_PREMIUM 5400
 
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
@@ -283,6 +285,18 @@ volatile unsigned char TCL_checa_teclado(){
 	// Retorna um espaço, indicador de que nada foi apertado
 	return ' ';
 	
+}
+
+int user_input(int num_teclas){
+	char input[num_teclas + 1];
+	for(int i = 0; i < num_teclas; i++){
+		char tecla = ' ';
+		while(tecla == ' ' || tecla == 'E')
+			tecla = TCL_checa_teclado();
+		LCD_caractere(tecla, DADO);
+		input[i] = tecla;
+	}
+	return atoi(input);
 }
 
 /* EEPROM_escrita: 

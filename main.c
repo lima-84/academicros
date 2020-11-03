@@ -210,9 +210,6 @@ void EEPROM_carrega_horarios(unsigned char lista_horarios[]){
 	}
 }
 
-void msg_erro_cliente_entrando(char codigo_erro);		//funcao que imprime motivo do cliente nao poder entrar (FALTA IMPLEMENTAR)
-//swtich case com o codigo de erro
-
 //funcao responsavel por ver se o cliente pode entrar no momento, e pelos processos seguintes
 void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_planos){
 	
@@ -220,13 +217,13 @@ void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_p
 	if(lista_planos[num_cliente] == 'X' || lotacao == 5 || (horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
 		//verifica individualmente cada condicao de impedimento, pra poder mostrar a msg de erro correspondente
 		if(lista_planos[num_cliente] == 'X'){
-			msg_erro_cliente_entrando(1);
+			LCD_mensagem_erro_conta();
 		}
 		if( lotacao == 5){
-			msg_erro_cliente_entrando(2);
+			LCD_mensagem_erro_lotacao();
 		}
-		if(horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
-			msg_erro_cliente_entrando(3);
+		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
+			LCD_mensagem_erro_horario();
 		}
 	}
 	else{						//caso o cliente possa entrar, sao feitos os procedimentos
@@ -341,13 +338,13 @@ int main(void){
 
 	// EEPROM
 	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)
-	EEPROM_carrega_horarios(lista_horarios);
+	//EEPROM_carrega_horarios(lista_horarios);
 	
-	unsigned char teste_horarios[TOTAL_CLIENTES];
+	/*unsigned char teste_horarios[TOTAL_CLIENTES];
 	short i;
 	for(i = 0; i < TOTAL_CLIENTES; i++){
 		teste_horarios[i] = EEPROM_leitura(i);
-	}
+	}*/
 	
 	// Configuração Timer0
 	TCCR0A = T0OVR;			// Modo do Timer0
@@ -408,7 +405,6 @@ int main(void){
 	volatile unsigned char tecla = 0;
     volatile unsigned char flag_cliente_validado = 0;
 	volatile short cliente_atual = 0;
-	volatile short tecla_posicao = 0;
 	
 	while (1){
 		// Checa se já passou do horário de funcionamento
@@ -428,7 +424,7 @@ int main(void){
 		
 		if(flag_tecla_digitada == 1){
 			// Lê e imprime números do teclado
-			//cliente_atual = teclas(5,teclas)
+			//cliente_atual =	user_input(5);
 			if(cliente_atual == 12345){
 				// Se for administrador, seta o flag_adm
 				flag_adm = 1;
@@ -437,7 +433,21 @@ int main(void){
 				// Se não for administrador, valida o cliente
 				//indice_cliente = valida_cliente(cliente_atual);
 			}
+			char flag_login = 0;
+			int input = user_input(5);
 			
+			for(int i = 0; i < 11; i++){
+				if(input == lista_clientes[i]){
+					flag_login = 1;
+					break;
+				}
+			}
+						
+			LCD_caractere(LCD_LINHA_UM, CMD);
+			if(flag_login == 1)
+				LCD_string("ta la");
+			else
+				LCD_string("n ta la");
 			// Se for um usuário válido ou o administrador
 			//if(flag_adm == 1 || indice_cliente != 'E'){
 				// Pede a senha
