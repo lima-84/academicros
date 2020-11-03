@@ -124,6 +124,58 @@ void EEPROM_carrega_horarios(unsigned char lista_horarios[]){
 	}
 }
 
+void msg_erro_cliente_entrando(char codigo_erro);		//funcao que imprime motivo do cliente nao poder entrar (FALTA IMPLEMENTAR)
+//swtich case com o codigo de erro
+
+//funcao responsavel por ver se o cliente pode entrar no momento, e pelos processos seguintes
+void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_planos){
+	
+	//verifica, respectivamente, se o cliente nao tem conta bloqueada, se a academia ta cheia, ou se a academia ja fechou
+	if(lista_planos[num_cliente] == 'X' || lotacao == 5 || (horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
+		//verifica individualmente cada condicao de impedimento, pra poder mostrar a msg de erro correspondente
+		if(lista_planos[num_cliente] == 'X'){
+			msg_erro_cliente_entrando(1);
+		}
+		if( lotacao == 5){
+			msg_erro_cliente_entrando(2);
+		}
+		if(horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
+			msg_erro_cliente_entrando(3);
+		}
+	}
+	else{						//caso o cliente possa entrar, sao feitos os procedimentos
+		lotacao++;				//incrementa o contador de pessoas dentro da academia
+		
+		//salva horario de entrada, convertendo pra minutos
+		lista_hora_entrada[num_cliente] = ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
+	}
+}
+
+
+//funcao para reduzir numero de horas da conta do cliente
+// tem que reduzir a lotacao e ver que o cliente nao tem conta master antes de chamar a funcao
+void cliente_saida(short num_cliente, short *lista_horarios, short *lista_hora_entrada, char *lista_planos){
+	
+	//conversao de char pra short da hora atual 
+	short t_atual_minutos = ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
+	
+	short t_dentro;									//numero de minutos que o cliente ficou dentro
+	if(t_atual_minutos < lista_hora_entrada[num_cliente]){					//se o cliente estiver saindo depois da meia noite
+		t_atual_minutos = t_atual_minutos + 1440;											//adiciona 24 horas na hora atual pra fazer os calculos
+	}
+	
+	t_dentro = t_atual_minutos - lista_hora_entrada[num_cliente];
+	
+	if(t_dentro >= lista_horarios[num_cliente]){							//se o cliente estourar o numero de horas
+		lista_horarios[num_cliente] = 0;				//zera as horas restantes na conta
+		lista_planos[num_cliente] = 'X';				//deixa a conta do cliente bloqueada
+	}
+	else{
+		lista_horarios[num_cliente] = lista_horarios[num_cliente] - t_dentro;		//se as horas nao tiverem estourado, faz a subtracao
+	}
+}
+
+
 int main(void){
 	
 	// Relação de clientes
@@ -170,20 +222,36 @@ int main(void){
 		'P'
 	};
 	
-	unsigned char lista_horarios [11] = {
-		// Conta master vira '*', código 42 (0x2A) ASCII
-		'*',	
-		'2',
-		'3',
-		'*',
-		'5',
-		'9',
-		'0',
-		'*',
-		'6',
-		'0',
-		'2'
+	unsigned short lista_horarios [11] = {		//mostra quantas horas (na vdd mostra em minutos) restantes cada login ainda tem
+		// Conta master tem 9999, conta bloqueada tem 0
+		//
+		9999,	
+		MIN_PREMIUM,
+		MIN_BASICA,
+		9999,
+		MIN_PREMIUM,
+		MIN_PREMIUM,
+		0,
+		9999,
+		MIN_BASICA,
+		0,
+		MIN_PREMIUM
 	};
+	
+	unsigned short lista_hora_entrada [11] = {		//mostra que horas (na vdd minutos) cada cliente entrou, conta master e bloqueada tem 0
+		0,	
+		1000,
+		1700,
+		0,
+		2200,
+		1100,
+		0,
+		0,
+		1345,
+		0,
+		1640
+	};
+	
 
 	// EEPROM
 	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)

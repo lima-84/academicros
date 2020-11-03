@@ -81,6 +81,10 @@
 #define COL2 0x50
 #define COL3 0x30
 
+//Minutos para diferentes contas
+#define MIN_BASICA 3600;
+#define MIN_PREMIUM 5400;
+
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
  * n = 256 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
