@@ -237,7 +237,7 @@ void cliente_entrada(short num_cliente, short *lista_hora_entrada, char *lista_p
 
 //funcao para reduzir numero de horas da conta do cliente
 // tem que reduzir a lotacao e ver que o cliente nao tem conta master antes de chamar a funcao
-void cliente_saida(short num_cliente, short *lista_horarios, short *lista_hora_entrada, char *lista_planos){
+void cliente_saida(short num_cliente, unsigned short *lista_horarios, unsigned short *lista_hora_entrada, char *lista_planos){
 	
 	//conversao de char pra short da hora atual 
 	short t_atual_minutos = ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
@@ -256,6 +256,40 @@ void cliente_saida(short num_cliente, short *lista_horarios, short *lista_hora_e
 	else{
 		lista_horarios[num_cliente] = lista_horarios[num_cliente] - t_dentro;		//se as horas nao tiverem estourado, faz a subtracao
 	}
+}
+
+void LCD_dados_cliente(short cliente, char plano, short tempo_restante){
+	char str_cliente[6], str_horas[4], str_minutos[3];
+	short horas, minutos;
+	
+	LCD_caractere(LCD_LINHA_UM, CMD);
+	LCD_string("Plano ");
+	switch(plano){
+		case 'B': LCD_string("Basico  ");  break;
+		case 'P': LCD_string("Premium ");  break;
+		case 'M': LCD_string("Master  ");  break;
+		case 'X': LCD_string("Bloqueado"); break;
+	}
+	
+
+	LCD_caractere(LCD_LINHA_DOIS, CMD);
+	itoa(cliente, str_cliente, 10);
+	LCD_string(str_cliente);
+	LCD_string("  ");
+	
+	horas = tempo_restante/60;		// Divisão inteira resulta no número de horas
+	minutos = tempo_restante%60;	// O resto equivale ao tempo em minutos
+	
+	itoa(horas,str_horas,10);
+	itoa(minutos,str_minutos,10);
+	
+	if(horas < 10)
+		LCD_caractere('0',DADO);
+	LCD_string(str_horas);
+	LCD_caractere(':', DADO);	
+	if(minutos < 10)
+		LCD_caractere('0',DADO);
+	LCD_string(str_minutos);
 }
 
 
@@ -290,7 +324,7 @@ int main(void){
 		28857,
 		29140
 	};	
-	volatile char lista_planos [11] =
+	char lista_planos [11] =
 	{
 		'M',
 		'P',
@@ -417,7 +451,6 @@ int main(void){
 	}*/
 
 	volatile unsigned char tecla = 0;
-    volatile unsigned char flag_cliente_validado = 0;
 	volatile short cliente_atual = 0, senha_atual = 0, indice_cliente = 0;
 	char str[10];
 	
@@ -474,8 +507,9 @@ int main(void){
 					// Pede a senha
 					LCD_mensagem_senha();
 					senha_atual = user_input(5,1);
-					if(senha_atual == lista_clientes[indice_cliente]){
-						LCD_string(" OK:)");
+					LCD_caractere(LCD_CSTATIC,CMD);
+					if(senha_atual == lista_senhas[indice_cliente]){
+						LCD_dados_cliente(lista_clientes[indice_cliente],lista_planos[indice_cliente],lista_horarios[indice_cliente]);
 					
 					}
 					else{
