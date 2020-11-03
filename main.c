@@ -170,7 +170,7 @@ void LCD_mensagem_adm_opcoes(){
 	LCD_caractere(LCD_CSTATIC,CMD);
 	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("1-Hora          ");
+	LCD_string("1-Hora       ADM");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("2-Cliente      ");
@@ -181,7 +181,7 @@ void LCD_mensagem_adm_horario(){
 	LCD_caractere(LCD_CSTATIC,CMD);
 	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("1-Hora          ");
+	LCD_string("1-Hora       ADM");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Horario: ");
@@ -192,7 +192,7 @@ void LCD_mensagem_adm_cliente(){
 	LCD_caractere(LCD_CSTATIC,CMD);
 	
 	LCD_caractere(LCD_LINHA_UM,CMD);
-	LCD_string("2-Cliente       ");
+	LCD_string("2-Cliente    ADM");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
 	LCD_string("Cliente: ");
@@ -311,10 +311,10 @@ void LCD_dados_cliente(short cliente, char plano, short tempo_restante){
 	LCD_caractere(LCD_LINHA_UM, CMD);
 	LCD_string("Plano ");
 	switch(plano){
-		case 'B': LCD_string("Basico  ");  break;
-		case 'P': LCD_string("Premium ");  break;
-		case 'M': LCD_string("Master  ");  break;
-		case 'X': LCD_string("Bloqueado"); break;
+		case 'B': LCD_string("Basico    ");  break;
+		case 'P': LCD_string("Premium   ");  break;
+		case 'M': LCD_string("Master    ");  break;
+		case 'X': LCD_string("Bloqueado "); break;
 	}
 	
 
@@ -586,6 +586,22 @@ int main(void){
 									horas_adm = user_input(2,0);
 									LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
 									minutos_adm = user_input(2,0);
+									
+									char aux1[3];
+									char aux2[3];
+									
+									itoa(horas_adm,aux1,10);
+									itoa(minutos_adm,aux2,10);
+									
+									horas[0] = aux1[0] - '0';
+									horas[1] = aux1[1] - '0';
+									
+									minutos[0] = aux2[0]- '0';
+									minutos[1] = aux2[1]- '0';
+									
+									imprime_hora();
+									atraso_mensagem();
+									
 								}
 								else if(tecla == '2'){
 									LCD_mensagem_adm_cliente();
@@ -594,10 +610,12 @@ int main(void){
 									cliente_adm = user_input(5,0);
 									indice_cliente_adm = valida_cliente(cliente_adm,lista_clientes);
 									if(indice_cliente_adm != 'E'){
+										LCD_caractere(LCD_CSTATIC,CMD);
 										LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
 									}
 									else{
 										LCD_mensagem_erro_login();
+										atraso_mensagem();
 									}
 								}
 								else if(tecla == '#'){
