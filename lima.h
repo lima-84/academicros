@@ -64,11 +64,16 @@
 #define LCD_ENTRY_MODE 0x06	// Incremento do cursor
 #define LCD_CLEAR 0x01		// Ativa o comando de CLEAR
 
+// Comandos para o cursor do display LCD
+#define LCD_CBLINK	0x0F	// Cursor ligado e piscando
+#define LCD_CSTATIC	0x0C	// Cursor desligado
+
 // Comandos de posicionamento do display LCD
 #define LCD_LINHA_UM 0x80	// Coloca o cursor na linha um
 #define LCD_LINHA_DOIS 0xC0	// Coloca o cursor na linha dois
 #define LCD_HORA 11			// Coloca o cursor na coluna das horas
 #define LCD_LOTACAO 15		// Coloca o cursor na coluna da lotação
+#define LCD_LOGIN 6			// Coloca o cursor após a mensagem de login
 
 // Flag de comando/dado para o display LCD
 #define CMD 0				// Valor do flag para envio de comando
@@ -261,8 +266,11 @@ volatile unsigned char TCL_checa_teclado(){
 					count = 0;
 				ult_tecla = tecla;
 			}
+			
+			if(tecla == 0x70) return ' ';
 			while(tecla == (PIND & (0x70)));		// Caso o usuário mantenha a tecla pressionada
-			PORTT ^= (1 << TESTE);					// LED de teste
+			
+			PORTT ^= (1 << TESTE);					// Pino de teste
 			
 			PORTD |= (1 << linha);					// Desativa a linha
 			return TCL_trata_tecla(tecla,linha);
