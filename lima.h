@@ -64,11 +64,16 @@
 #define LCD_ENTRY_MODE 0x06	// Incremento do cursor
 #define LCD_CLEAR 0x01		// Ativa o comando de CLEAR
 
+// Comandos para o cursor do display LCD
+#define LCD_CBLINK	0x0F	// Cursor ligado e piscando
+#define LCD_CSTATIC	0x0C	// Cursor desligado
+
 // Comandos de posicionamento do display LCD
 #define LCD_LINHA_UM 0x80	// Coloca o cursor na linha um
 #define LCD_LINHA_DOIS 0xC0	// Coloca o cursor na linha dois
 #define LCD_HORA 11			// Coloca o cursor na coluna das horas
 #define LCD_LOTACAO 15		// Coloca o cursor na coluna da lotação
+#define LCD_LOGIN 6			// Coloca o cursor após a mensagem de login
 
 // Flag de comando/dado para o display LCD
 #define CMD 0				// Valor do flag para envio de comando
@@ -239,18 +244,35 @@ volatile unsigned char TCL_trata_tecla(volatile unsigned char tecla, volatile un
  */
 volatile unsigned char TCL_checa_teclado(){
 	
-	volatile unsigned char tecla = 'x', linha = 0;
-		
+	volatile unsigned char tecla = 'x', ult_tecla = 0, linha = 0;
+	volatile unsigned int count = 0;
+	
 	while(linha < 4){
 		// Lê a i-ésima linha
 		PORTD &= ~(1 << linha);
 		tecla = PIND & (0x70);
-		PORTD |= (1 << linha);
 		
 		if(tecla == 0x70){ // Se nada nesta linha foi apertado
+			PORTD |= (1 << linha);
 			linha++;
 		}
 		else{
+			while(count < BOUNCE){					// Trata o bouncing da tecla
+				atraso_timer0(256 - ATR_1000);		// Atraso de 1ms
+				tecla = PIND & (0x70);
+				if(tecla == ult_tecla)
+					count++;
+				else
+					count = 0;
+				ult_tecla = tecla;
+			}
+			
+			if(tecla == 0x70) return ' ';
+			while(tecla == (PIND & (0x70)));		// Caso o usuário mantenha a tecla pressionada
+			
+			PORTT ^= (1 << TESTE);					// Pino de teste
+			
+			PORTD |= (1 << linha);					// Desativa a linha
 			return TCL_trata_tecla(tecla,linha);
 		}
 	}

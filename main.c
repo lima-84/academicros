@@ -2,9 +2,10 @@
 #include <avr/interrupt.h>
 #include "lima.h"
 
-char horas[2] = {0,8}, minutos[2] = {5,5}, lotacao = 3;
+char horas[2] = {1,3}, minutos[2] = {5,5}, lotacao = 3;
 volatile char flag_cliente_apos_horario = 0;
 volatile char flag_adm = 0, flag_atualiza_horario = 0;
+volatile char flag_tecla_digitada = 0;
 
 /* atualiza_hora:
  * Incrementa o relógio de um minuto
@@ -89,6 +90,89 @@ void LCD_mensagem_cliente_apos_horario(){
 	LCD_string("Pessoas dentro:");
 }
 
+void LCD_mensagem_login(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("Login:          ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("                ");
+	
+	LCD_caractere((LCD_LOGIN & 0x0F) | LCD_LINHA_UM,CMD);
+	LCD_caractere(LCD_CBLINK,CMD);
+}
+
+void LCD_mensagem_senha(){
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Senha:");
+}
+
+
+void LCD_mensagem_erro_login(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Erro de login  ");
+	
+}
+
+void LCD_mensagem_erro_senha(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Erro de senha  ");
+}
+
+void LCD_mensagem_erro_conta(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Erro de conta  ");
+}
+
+void LCD_mensagem_erro_lotacao(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Local lotado  ");
+}
+
+void LCD_mensagem_erro_horario(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("   ERRO!   ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Fechado       ");
+}
+
+void LCD_mensagem_adm_opcoes(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("*-Hora     ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("#-Cliente      ");
+}
+
+void LCD_mensagem_adm_horario(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("*-Hora    ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Horario:       ");
+}
+
+void LCD_mensagem_adm_cliente(){
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("#-Cliente  ");
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("Cliente:       ");
+}
+
 /* ISR(TIMER1_OVF_vect):
  * Trata interrupção por overflow do Timer1, atualiza a hora no display LCD
  * Tempo de execução da função ~1ms
@@ -98,7 +182,9 @@ ISR(TIMER1_OVF_vect){
 	if(flag_atualiza_horario == 1){
 		// Atualiza e imprime a hora no display LCD
 		atualiza_hora();
-		imprime_hora();
+		if(flag_tecla_digitada == 0){
+			imprime_hora();
+		}
 		flag_atualiza_horario = 0;
 	}
 	else{
@@ -109,8 +195,8 @@ ISR(TIMER1_OVF_vect){
 	
 	// Se houver algum cliente na academia após o horário
 	if(flag_cliente_apos_horario == 1){
-		//PORTT ^= (1 << TESTE);		// Inverte o pino de teste
 		PORTB ^= (1 << LED);	// Inverte o LED
+		LCD_mensagem_cliente_apos_horario();
 	}
 }
 
@@ -231,6 +317,14 @@ int main(void){
 	PORTD |= 0x0F;			// Inicializa as linhas do teclado
 	PIND |= 0x70;			// Aciona resistores de pull-up das colunas
 	
+	// Interrpução externa
+	DDRC |= (1 << 1);		// Seta PC1 como saída para forçar interrupções
+	PORTC |= (1 << 1);
+	
+	PCICR |= (1 << PCIE1);	// Interrupt por troca de estado de PCINT1
+	PCIFR |= (1 << PCIF1);	// Zera o flag de interrpução por troca de estado de PCINT1
+	PCMSK1 |= (1 << PCINT9);	// Habilita interrupção por troca de estado de PC1
+	
 	init_display();
 	LCD_mensagem_padrao();
 	
@@ -244,24 +338,82 @@ int main(void){
 	}*/
 
 	volatile unsigned char tecla = 0;
-    
+    volatile unsigned char flag_cliente_validado = 0;
+	volatile short cliente_atual = 0;
+	volatile short tecla_posicao = 0;
+	
 	while (1){
 		// Checa se já passou do horário de funcionamento
 		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
 			// Checa se alguém ainda está na academia
 			if(lotacao > 0){
-				flag_cliente_apos_horario = 1;
-				LCD_mensagem_cliente_apos_horario();
-				PORTT ^= (1 << TESTE);		// Inverte o pino de teste			
+				flag_cliente_apos_horario = 1;	
 			}
 		}
 		
 		tecla = TCL_checa_teclado();
-		if(tecla != ' ' && tecla != 'E'){
-			LCD_caractere(LCD_LINHA_UM,CMD);
-			LCD_caractere(tecla,DADO);
+		// Se alguma tecla foi apertada, ativa o flag de tecla apertada
+		if(tecla == '*'){
+			flag_tecla_digitada = 1;
+			LCD_mensagem_login();
 		}
-		//atraso_timer1(65536 - ATR_200_MS);
+		
+		if(flag_tecla_digitada == 1){
+			// Lê e imprime números do teclado
+			//cliente_atual = teclas(5,teclas)
+			if(cliente_atual == 12345){
+				// Se for administrador, seta o flag_adm
+				flag_adm = 1;
+			}
+			else{
+				// Se não for administrador, valida o cliente
+				//indice_cliente = valida_cliente(cliente_atual);
+			}
+			
+			// Se for um usuário válido ou o administrador
+			//if(flag_adm == 1 || indice_cliente != 'E'){
+				// Pede a senha
+				//LCD_mensagem_senha();
+				//senha_atual = teclas(5,senha);
+			//}
+			
+		}
+		
+		
+		/*if(flag_tecla_digitada == 1){
+			if(tecla == '1'){
+				LCD_mensagem_erro_login();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '2'){
+				LCD_mensagem_erro_senha();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '3'){
+				LCD_mensagem_erro_conta();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '4'){
+				LCD_mensagem_erro_lotacao();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '5'){
+				LCD_mensagem_erro_horario();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '6'){
+				LCD_mensagem_adm_opcoes();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '7'){
+				LCD_mensagem_adm_horario();
+				flag_tecla_digitada = 0;
+			}
+			if(tecla == '8'){
+				LCD_mensagem_adm_cliente();
+				flag_tecla_digitada = 0;
+			}
+		}*/
 		
     }
 }
