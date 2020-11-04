@@ -680,10 +680,22 @@ int main(void){
 										horas_adm = user_input(2,0);
 										LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
 										minutos_adm = user_input(2,0);
-																		
-										int teste = 6*horas_adm + minutos_adm/10;							
+											
+											
+										char aux1[3];
+										char aux2[3];
+										
+										itoa(horas_adm,aux1,10);
+										itoa(minutos_adm,aux2,10);			
+										
+										LCD_caractere(LCD_CLEAR,CMD);
+										LCD_caractere(LCD_LINHA_UM,CMD);
+										LCD_string(aux1);
+										LCD_caractere(LCD_LINHA_DOIS,CMD);
+										LCD_string(aux2);
+										while(TCL_checa_teclado() != '#');		
 												
-										lista_horarios[indice_cliente_adm] = teste;
+										lista_horarios[indice_cliente_adm] = hhmm_para_minutos(aux1,aux2);
 										LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
 									}
 									else{
