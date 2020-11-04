@@ -328,6 +328,7 @@ void minutos_para_hhmm(int total_minutos, char* str_horas, char* str_minutos){
 	
 	itoa(num_horas,str_horas,10);
 	itoa(num_minutos,str_minutos,10);	
+	
 }
 
 /* EEPROM_escrita: 
