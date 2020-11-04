@@ -721,30 +721,29 @@ int main(void){
 									LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
 									minutos_adm = user_input(2,0);
 									
-									if(horas_adm > 23 || minutos_adm > 59){
+									char aux1[3];
+									char aux2[3];
+									
+									itoa(horas_adm,aux1,10);
+									itoa(minutos_adm,aux2,10);
+									if(horas_adm < 10){
+										aux1[1] = aux1[0];
+										aux1[0] = '0';
+									}
+									if(minutos_adm < 10){
+										aux2[1] = aux2[0];
+										aux2[0] = '0';
+									}
+									
+									if((horas_adm > 23 || minutos_adm > 59) || aux1[0] == '*' || aux1[0] =='#' || aux1[1] == '*' || aux1[1] =='#' || aux2[0] == '*' || aux2[0] =='#' || aux2[1] == '*' || aux2[1] =='#'){
 										LCD_mensagem_adm_horario_erro();
 									}
-									else{
-										char aux1[3];
-										char aux2[3];
-									
-										itoa(horas_adm,aux1,10);
-										itoa(minutos_adm,aux2,10);
-										if(horas_adm < 10){
-											aux1[1] = aux1[0];
-											aux1[0] = '0';
-										}
-										if(minutos_adm < 10){
-											aux2[1] = aux2[0];
-											aux2[0] = '0';
-										}
-									
+									else{	
 										horas[0] = aux1[0] - '0';
 										horas[1] = aux1[1] - '0';
 									
 										minutos[0] = aux2[0] - '0';
 										minutos[1] = aux2[1] - '0';
-									
 										LCD_mensagem_adm_horario_confirmacao();									
 									}
 								}
@@ -770,8 +769,13 @@ int main(void){
 											LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
 											minutos_adm = user_input(2,0);
 											
-											lista_horarios[indice_cliente_adm] = 60*horas_adm + minutos_adm;
-											LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
+											if(minutos_adm > 59){
+												LCD_mensagem_adm_horario_erro();
+											}											
+											else{
+												lista_horarios[indice_cliente_adm] = 60*horas_adm + minutos_adm;
+												LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
+											}
 										}
 									}
 									else{
