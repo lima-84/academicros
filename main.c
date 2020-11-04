@@ -280,13 +280,17 @@ ISR(TIMER1_OVF_vect){
 	}
 }
 
-/* EEPROM_carrega_horarios:
+/* EEPROM_escreve_lista_horarios:
  * Carrega a lista de horários na EEPROM
  */
-void EEPROM_carrega_horarios(unsigned char lista_horarios[]){
-	short i;
-	for(i = 0; i < TOTAL_CLIENTES; i++){
-		EEPROM_escrita(i, lista_horarios[i]);
+void EEPROM_escreve_lista_horarios(unsigned short* lista_horarios){
+	for(int i = 0; i < 2*TOTAL_CLIENTES - 1; i++)
+	EEPROM_escreve_horario(2*i,lista_horarios[i]);
+}
+
+void EEPROM_le_lista_horarios(unsigned short* lista_horarios){
+	for(int i = 0; i < TOTAL_CLIENTES; i++){
+		lista_horarios[i] = EEPROM_le_horario(2*i);
 	}
 }
 
@@ -430,20 +434,19 @@ int main(void){
 		'P'
 	};
 	
-	unsigned short lista_horarios [11] = {		//mostra quantas horas (na vdd mostra em minutos) restantes cada login ainda tem
+	unsigned short lista_horarios_aux [11] = {		//mostra quantas horas (na vdd mostra em minutos) restantes cada login ainda tem
 		// Conta master tem 9999, conta bloqueada tem 0
-		//
-		9999,	
-		MIN_PREMIUM,
-		MIN_BASICA,
-		9999,
-		MIN_PREMIUM,
-		MIN_PREMIUM,
-		0,
-		9999,
-		MIN_BASICA,
-		0,
-		MIN_PREMIUM
+		0x3041,
+		0x3142,
+		0x3243,
+		0x3344,
+		0x3445,
+		0x3546,
+		0x3647,
+		0x3748,
+		0x3849,
+		0x394A,
+		0x414B,	
 	};
 	
 	unsigned short lista_hora_entrada [11] = {		//mostra que horas (na vdd minutos) cada cliente entrou, conta master e bloqueada tem 0
@@ -477,16 +480,6 @@ int main(void){
 	for(int i = 0; i < TOTAL_CLIENTES; i++){
 		lotacao += lista_clientes_dentro[i];
 	}
-
-	// EEPROM
-	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)
-	//EEPROM_carrega_horarios(lista_horarios);
-	
-	/*unsigned char teste_horarios[TOTAL_CLIENTES];
-	short i;
-	for(i = 0; i < TOTAL_CLIENTES; i++){
-		teste_horarios[i] = EEPROM_leitura(i);
-	}*/
 	
 	// Configuração Timer0
 	TCCR0A = T0OVR;			// Modo do Timer0
@@ -532,21 +525,41 @@ int main(void){
 	PCIFR |= (1 << PCIF1);	// Zera o flag de interrpução por troca de estado de PCINT1
 	PCMSK1 |= (1 << PCINT9);	// Habilita interrupção por troca de estado de PC1
 	
+	// EEPROM
+	EECR &= (~(1 << EEPM1) & ~(1 << EEPM0));	// Escolhe o modo atômico (00)
+	
 	init_display();
 	LCD_mensagem_padrao();
-	
-	sei();					// Habilita interrupções
-	TCNT1 = 65536 - ATR_500_MS;
-	
+		
 	LCD_caractere(LCD_LINHA_UM,CMD);
 	
-	/*for(i = 0; i < TOTAL_CLIENTES; i++){
-		LCD_caractere(teste_horarios[i],DADO);
-	}*/
-
 	volatile unsigned char tecla = 0;
 	volatile short cliente_atual = 0, senha_atual = 0, indice_cliente = 0;
 	volatile short horas_adm = 0, minutos_adm = 0, cliente_adm = 0, indice_cliente_adm = 0;
+	unsigned short lista_horarios[TOTAL_CLIENTES];
+
+	EEPROM_clear();
+	
+	EEPROM_escreve_lista_horarios(lista_horarios_aux);
+	EEPROM_le_lista_horarios(lista_horarios);
+	
+	/*cli();
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	for(int i = 0; i < TOTAL_CLIENTES; i++){
+		LCD_caractere(lista_horarios[i],DADO);
+		LCD_caractere(lista_horarios[i] >> 8,DADO);
+		while(TCL_checa_teclado() != '#');
+
+		if(i == 4){
+			LCD_caractere(LCD_LINHA_DOIS,CMD);
+		}
+	}*/
+	
+	LCD_caractere(LCD_LINHA_DOIS,CMD);
+	LCD_string("ok");
+	
+	sei();					// Habilita interrupções
+	TCNT1 = 65536 - ATR_500_MS;
 	
 	while (1){
 		// Checa se já passou do horário de funcionamento
@@ -669,7 +682,7 @@ int main(void){
 									indice_cliente_adm = valida_cliente(cliente_adm,lista_clientes);
 									if(indice_cliente_adm != 'E'){
 										LCD_caractere(LCD_CSTATIC,CMD);
-										LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
+										//LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
 										
 										LCD_mensagem_adm_cliente_horario();
 										LCD_caractere((11 & 0x0F) | LCD_LINHA_DOIS,CMD);

@@ -336,11 +336,14 @@ void minutos_para_hhmm(int total_minutos, char* str_horas, char* str_minutos){
  */
 void EEPROM_escrita(volatile unsigned short endereco, volatile unsigned char dado){
 	// EEPE: 1 -> escrita	0 -> leitura
+	cli();
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
 	EEAR = endereco;					// HIGH e LOW, mas pode ser feito diretamente
 	EEDR = dado;
+	
 	EECR |= (1 << EEMPE);				// Liga o Master Program Enable
 	EECR |= (1 << EEPE);				// Inicia o processo de escrita
+	sei();
 }
 
 /* EEPROM_leitura: 
@@ -350,12 +353,30 @@ volatile unsigned char EEPROM_leitura(volatile unsigned short endereco){
 	
 	volatile unsigned char dado;
 	
+	cli();
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
 	EEAR = endereco;					
 	EECR |= (1 << EERE);				// Inicia a leitura
 	dado = EEDR;						// Lê o registrador de dado
 	
+	sei();
 	return dado;
+
+}
+
+void EEPROM_escreve_horario(volatile unsigned short endereco, volatile unsigned short horario){
+	EEPROM_escrita(endereco,horario & 0xFF);
+	EEPROM_escrita(endereco+1,horario >> 8);	
+}
+
+unsigned short EEPROM_le_horario(unsigned short endereco){
+	return ((short) (EEPROM_leitura(endereco) | (EEPROM_leitura(endereco + 1) << 8)));
+}
+
+void EEPROM_clear(){
+	for(short i = 0; i < 128; i++){
+		EEPROM_escrita(i,'0');
+	} 
 }
 
 
