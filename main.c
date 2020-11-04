@@ -203,7 +203,9 @@ void LCD_mensagem_adm_horario(){
 	LCD_string("1-Hora       ADM");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("Horario: ");
+	LCD_string("Horario: hh:mm");
+	
+	LCD_caractere((9 & 0xFF) | LCD_LINHA_DOIS,CMD);
 }
 
 void LCD_mensagem_adm_cliente(){
@@ -247,7 +249,17 @@ void LCD_mensagem_adm_cliente_horario(){
 	LCD_string("2-Cliente    ADM");
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("Horario: hh mm  ");
+	LCD_string("Horario: hh mm   ");
+}
+
+void LCD_mensagem_adm_horario_confirmacao(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
+	LCD_caractere(LCD_LINHA_UM,CMD);
+	LCD_string("Horario alterado");
+	
+	atraso_mensagem();
 }
 
 /* ISR(TIMER1_OVF_vect):
@@ -352,6 +364,7 @@ void cliente_saida(short num_cliente, unsigned short *lista_horarios, unsigned s
 void LCD_dados_cliente(short cliente, char plano, short tempo_restante){
 	char str_cliente[6], str_horas[4], str_minutos[3];
 	
+	LCD_caractere(LCD_CSTATIC,CMD);
 	LCD_caractere(LCD_LINHA_UM, CMD);
 	LCD_string("Plano ");
 	switch(plano){
@@ -436,17 +449,17 @@ int main(void){
 	
 	unsigned short lista_horarios_aux [11] = {		//mostra quantas horas (na vdd mostra em minutos) restantes cada login ainda tem
 		// Conta master tem 9999, conta bloqueada tem 0
-		0x3041,
-		0x3142,
-		0x3243,
-		0x3344,
-		0x3445,
-		0x3546,
-		0x3647,
-		0x3748,
-		0x3849,
-		0x394A,
-		0x414B,	
+		9999,
+		MIN_PREMIUM,
+		MIN_BASICA,
+		9999,
+		MIN_PREMIUM,
+		MIN_PREMIUM,
+		0,
+		9999,
+		MIN_BASICA,
+		0,
+		MIN_PREMIUM
 	};
 	
 	unsigned short lista_hora_entrada [11] = {		//mostra que horas (na vdd minutos) cada cliente entrou, conta master e bloqueada tem 0
@@ -553,10 +566,11 @@ int main(void){
 		if(i == 4){
 			LCD_caractere(LCD_LINHA_DOIS,CMD);
 		}
-	}*/
+	}
 	
 	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("ok");
+	LCD_string("done");
+	*/
 	
 	sei();					// Habilita interrupções
 	TCNT1 = 65536 - ATR_500_MS;
@@ -670,8 +684,7 @@ int main(void){
 									minutos[0] = aux2[0] - '0';
 									minutos[1] = aux2[1] - '0';
 									
-									imprime_hora();
-									atraso_mensagem();
+									LCD_mensagem_adm_horario_confirmacao();									
 									
 								}
 								else if(tecla == '2'){
@@ -682,34 +695,23 @@ int main(void){
 									indice_cliente_adm = valida_cliente(cliente_adm,lista_clientes);
 									if(indice_cliente_adm != 'E'){
 										LCD_caractere(LCD_CSTATIC,CMD);
-										//LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
-										
-										LCD_mensagem_adm_cliente_horario();
-										LCD_caractere((11 & 0x0F) | LCD_LINHA_DOIS,CMD);
-										LCD_caractere(':',DADO);
-										
-										LCD_caractere(LCD_CBLINK,CMD);
-										LCD_caractere((9 & 0x0F) | LCD_LINHA_DOIS,CMD);
-										horas_adm = user_input(2,0);
-										LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
-										minutos_adm = user_input(2,0);
-											
-											
-										char aux1[3];
-										char aux2[3];
-										
-										itoa(horas_adm,aux1,10);
-										itoa(minutos_adm,aux2,10);			
-										
-										LCD_caractere(LCD_CLEAR,CMD);
-										LCD_caractere(LCD_LINHA_UM,CMD);
-										LCD_string(aux1);
-										LCD_caractere(LCD_LINHA_DOIS,CMD);
-										LCD_string(aux2);
-										while(TCL_checa_teclado() != '#');		
-												
-										lista_horarios[indice_cliente_adm] = hhmm_para_minutos(aux1,aux2);
 										LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
+										
+										if(lista_planos[indice_cliente_adm] != 'M' && lista_planos[indice_cliente_adm] != 'X'){
+											LCD_mensagem_adm_cliente_horario();
+											LCD_caractere((11 & 0x0F) | LCD_LINHA_DOIS,CMD);
+											LCD_caractere(':',DADO);
+											
+											LCD_caractere(LCD_CBLINK,CMD);
+											LCD_caractere((9 & 0x0F) | LCD_LINHA_DOIS,CMD);
+											horas_adm = user_input(2,0);
+											
+											LCD_caractere((12 & 0x0F) | LCD_LINHA_DOIS,CMD);
+											minutos_adm = user_input(2,0);
+											
+											lista_horarios[indice_cliente_adm] = 60*horas_adm + minutos_adm;
+											LCD_dados_cliente(lista_clientes[indice_cliente_adm],lista_planos[indice_cliente_adm],lista_horarios[indice_cliente_adm]);
+										}
 									}
 									else{
 										LCD_mensagem_erro_login();

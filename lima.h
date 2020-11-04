@@ -288,7 +288,7 @@ volatile unsigned char TCL_checa_teclado(){
 }
 
 int user_input(int num_teclas, char senha){
-	char input[num_teclas + 1];
+	char input[num_teclas];
 	for(int i = 0; i < num_teclas; i++){
 		char tecla = ' ';
 		while(tecla == ' ' || tecla == 'E')
