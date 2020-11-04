@@ -1,6 +1,8 @@
 #ifndef LIMA_H_
 #define LIMA_H_
 
+#include <stdlib.h>
+
 // Tempo de bounce em ms
 #define BOUNCE 8
 
@@ -87,8 +89,8 @@
 #define COL3 0x30
 
 //Minutos para diferentes contas
-#define MIN_BASICA 3600;
-#define MIN_PREMIUM 5400;
+#define MIN_BASICA 3600
+#define MIN_PREMIUM 5400
 
 /* atraso_timer0:
  * Gera um atraso relativo a n contagens com Timer0 em modo normal
@@ -285,16 +287,63 @@ volatile unsigned char TCL_checa_teclado(){
 	
 }
 
+int user_input(int num_teclas, char senha){
+	char input[num_teclas];
+	for(int i = 0; i < num_teclas; i++){
+		char tecla = ' ';
+		while(tecla == ' ' || tecla == 'E')
+			tecla = TCL_checa_teclado();
+		if(senha == 0){
+			LCD_caractere(tecla, DADO);
+		}
+		else if(senha == 1){
+			LCD_caractere('*',DADO);
+		}
+		input[i] = tecla;
+	}
+	return atoi(input);
+}
+
+int valida_cliente(volatile short int input, volatile const short lista[11]){
+	for(int i = 0; i < 11; i++){
+		if(input == lista[i]){
+			return i;
+		}
+	}
+	return 'E';
+}
+
+int hhmm_para_minutos(char* horas, char* minutos){
+	
+	return ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
+	
+}
+
+void minutos_para_hhmm(int total_minutos, char* str_horas, char* str_minutos){
+	
+	short num_horas, num_minutos;
+	
+	num_horas = total_minutos/60;
+	num_minutos = total_minutos%60;
+	
+	itoa(num_horas,str_horas,10);
+	itoa(num_minutos,str_minutos,10);	
+	
+}
+
 /* EEPROM_escrita: 
  * Escreve um dado em um determinado endereço na EEPROM do chip
  */
 void EEPROM_escrita(volatile unsigned short endereco, volatile unsigned char dado){
 	// EEPE: 1 -> escrita	0 -> leitura
+	cli();
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
 	EEAR = endereco;					// HIGH e LOW, mas pode ser feito diretamente
 	EEDR = dado;
+	
 	EECR |= (1 << EEMPE);				// Liga o Master Program Enable
 	EECR |= (1 << EEPE);				// Inicia o processo de escrita
+	sei();
 }
 
 /* EEPROM_leitura: 
@@ -304,12 +353,30 @@ volatile unsigned char EEPROM_leitura(volatile unsigned short endereco){
 	
 	volatile unsigned char dado;
 	
+	cli();
 	while(EECR & (1 << EEPE));			// Espera a última escrita terminar
 	EEAR = endereco;					
 	EECR |= (1 << EERE);				// Inicia a leitura
 	dado = EEDR;						// Lê o registrador de dado
 	
+	sei();
 	return dado;
+
+}
+
+void EEPROM_escreve_horario(volatile unsigned short endereco, volatile unsigned short horario){
+	EEPROM_escrita(endereco,horario & 0xFF);
+	EEPROM_escrita(endereco+1,horario >> 8);	
+}
+
+unsigned short EEPROM_le_horario(unsigned short endereco){
+	return ((short) (EEPROM_leitura(endereco) | (EEPROM_leitura(endereco + 1) << 8)));
+}
+
+void EEPROM_clear(){
+	for(short i = 0; i < 128; i++){
+		EEPROM_escrita(i,'0');
+	} 
 }
 
 
