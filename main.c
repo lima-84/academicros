@@ -947,7 +947,8 @@ int main(void){
 											minutos_adm = user_input(2,0,&flag_caractere_especial);
 											// Checa consistência dos minutos
 											if(minutos_adm > 59 || flag_caractere_especial == 1){
-												LCD_mensagem_adm_horario_erro(); // Exibe mensagem de horário inválido
+												LCD_mensagem_adm_horario_erro();	// Exibe mensagem de horário inválido
+												flag_caractere_especial = 0;		// Zera o flag de caractere especial, para a próxima iteração
 											}											
 											else{
 												// Bloco para teste da EEPROM
