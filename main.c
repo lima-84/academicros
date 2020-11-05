@@ -88,6 +88,9 @@ void atraso_mensagem(){
 }
 
 void LCD_mensagem_academicros(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);
 	LCD_string("  Academicros   ");
 	
@@ -101,6 +104,9 @@ void LCD_mensagem_academicros(){
  *	Imprime a mensagem padrão (hora e lotação)
  */
 void LCD_mensagem_padrao(){
+	
+	LCD_caractere(LCD_CSTATIC,CMD);
+	
 	LCD_caractere(LCD_LINHA_UM,CMD);	// Posiciona o cursor na primeira linha
 	LCD_string("Hora:      ");
 	imprime_hora();
@@ -382,23 +388,22 @@ void LCD_mensagem_adm_horario_erro(){
 }
 /* ISR(TIMER1_OVF_vect):
  * Trata interrupção por overflow do Timer1, atualiza a hora no display LCD
- * Tempo de execução da função ~1ms
  */
 ISR(TIMER1_OVF_vect){
-	// Checa se é a segunda interrupção consecutiva (ou seja, 1 segundo se passou)
-	if(flag_atualiza_horario == 1){
+	// Checa se é a quarta interrupção consecutiva (ou seja, 1 segundo se passou)
+	if(flag_atualiza_horario == 3){
 		// Atualiza e imprime a hora no display LCD
-		atualiza_hora();
+		atualiza_hora();		
+		flag_atualiza_horario = 0;
 		if(flag_tecla_digitada == 0){
 			imprime_hora();
 		}
-		flag_atualiza_horario = 0;
 	}
 	else{
-		// Se não atualizou nesta interrupção, deve atualizar na próxima
-		flag_atualiza_horario = 1;
+		// Se não atualizou nesta interrupção, incrementa o contador
+		flag_atualiza_horario++;
 	}
-	TCNT1 = 65536 - ATR_500_MS; // Reinicializa o Timer1
+	TCNT1 = 65536 - ATR_250_MS; // Reinicializa o Timer1
 	
 	// Se houver algum cliente na academia após o horário
 	if(flag_cliente_apos_horario == 1){
@@ -427,30 +432,25 @@ void EEPROM_le_lista_horarios(unsigned short* lista_horarios){
 //funcao responsavel por ver se o cliente pode entrar no momento, e pelos processos seguintes
 char cliente_entrada(short num_cliente, unsigned short *lista_hora_entrada, char *lista_planos){
 	
-	//verifica, respectivamente, se o cliente nao tem conta bloqueada, se a academia ta cheia, ou se a academia ja fechou
-	if(lista_planos[num_cliente] == 'X' || lotacao == 5 || (horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
-		//verifica individualmente cada condicao de impedimento, pra poder mostrar a msg de erro correspondente
-		if(lista_planos[num_cliente] == 'X'){
-			LCD_mensagem_erro_conta_bloqueada();
-		}
-		if(lotacao == 5){
-			LCD_mensagem_erro_lotacao();
-		}
-		if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
-			LCD_mensagem_erro_horario();
-		}
-		
-		return 0;
-		
+	//verifica individualmente cada condicao de impedimento, pra poder mostrar a msg de erro correspondente
+	if(lista_planos[num_cliente] == 'X'){
+		LCD_mensagem_erro_conta_bloqueada();
 	}
-	else{						//caso o cliente possa entrar, sao feitos os procedimentos
-				
+	else if(lotacao == 5){
+		LCD_mensagem_erro_lotacao();
+	}
+	else if((horas[0] == 0 && horas[1] <= 7) || (horas[0] == 2 && horas[1] == 3)){
+		LCD_mensagem_erro_horario();
+	}		
+	else{						//caso o cliente possa entrar, sao feitos os procedimentos		
 		//salva horario de entrada, convertendo pra minutos
 		if(lista_planos[num_cliente] != 'M')
 			lista_hora_entrada[num_cliente] = hhmm_para_minutos(horas,minutos);
 		
 		return 1;
 	}
+	
+	return 0;
 }
 
 
@@ -470,7 +470,6 @@ void cliente_saida(short num_cliente, unsigned short *lista_horarios, unsigned s
 	
 	if(t_dentro >= lista_horarios[num_cliente]){		//se o cliente estourar o numero de horas
 		lista_horarios[num_cliente] = 0;				//zera as horas restantes na conta
-		lista_planos[num_cliente] = 'X';				//deixa a conta do cliente bloqueada
 	}
 	else{
 		lista_horarios[num_cliente] = lista_horarios[num_cliente] - t_dentro;		//se as horas nao tiverem estourado, faz a subtracao
@@ -567,17 +566,17 @@ int main(void){
 	};
 	
 	unsigned short lista_horarios_aux [11] = {		//mostra quantas horas (na vdd mostra em minutos) restantes cada login ainda tem
-		// Conta master tem 9999, conta bloqueada tem 0
+		// Conta master tem 9999, conta bloqueada tem -2
 		9999,
 		MIN_PREMIUM,
 		MIN_BASICA,
 		9999,
 		MIN_PREMIUM,
 		MIN_PREMIUM,
-		0,
+		-2,
 		9999,
 		MIN_BASICA,
-		0,
+		-2,
 		MIN_PREMIUM
 	};
 	
@@ -692,7 +691,7 @@ int main(void){
 	*/
 	
 	sei();					// Habilita interrupções
-	TCNT1 = 65536 - ATR_500_MS;
+	TCNT1 = 65536 - ATR_250_MS;
 	
 	while (1){
 		// Checa se já passou do horário de funcionamento
@@ -709,6 +708,7 @@ int main(void){
 		}else if(flag_cliente_apos_horario == 1){
 			flag_cliente_apos_horario = 0;
 			flag_msg_cliente_apos_horario = 1;
+			PORTB &= ~(1 << LED);
 			LCD_mensagem_padrao();
 		}
 		
@@ -820,7 +820,7 @@ int main(void){
 									aux1[2] = '\0';
 									aux2[2] = '\0';
 																	
-									if(horas_adm >= 0 && horas_adm < 23 && flag_caractere_especial == 0){
+									if(horas_adm >= 0 && horas_adm <= 23 && minutos_adm >=0 && minutos_adm < 60 && flag_caractere_especial == 0){
 										
 										horas[0] = aux1[0] - '0';
 										horas[1] = aux1[1] - '0';

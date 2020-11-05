@@ -24,16 +24,11 @@
 #define BOUNCE 8
 
 // Número de contagens dos atrasos, arredondados (PRESCALER=256)
-#define ATR_800 50				//  800us
-#define ATR_1200 75				// 1200us
-								
 #define ATR_40 3				//   40us
 #define ATR_1600 100			// 1600us
 #define ATR_1000 63				// 1000us
 
-#define ATR_200_MS 12500		//  200ms
-#define ATR_500_MS 31250		//  500ms
-#define ATR_1000_MS 62500		// 1000ms
+#define ATR_250_MS 15750		//  250ms (Na verdade 246ms: considera outros comandos da interrupção)
 
 // Modos do Timer0
 #define T0OVR 0x00				// Modo overflow
@@ -108,7 +103,6 @@
 // Tempo em minutos da conta
 #define MIN_BASICA 3600			// Conta básica:  60 horas
 #define MIN_PREMIUM 5400		// Conta premium: 90 horas
-
 /* atraso_timer0:													*/
 /* Gera um atraso relativo a n contagens com Timer0 em modo normal	*/
 /* n = 256 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)					*/
