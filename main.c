@@ -16,7 +16,7 @@
 /**********************************************************************/
 /*			Variáveis globais: horário, lotação e flags				  */
 /**********************************************************************/
-char horas[2] = {1,3}, minutos[2] = {5,5}, lotacao;						// Horas, minutos e lotação atuais
+char horas[2] = {0,9}, minutos[2] = {2,5}, lotacao;						// Horas, minutos e lotação atuais
 volatile char flag_cliente_apos_horario = 0;							// Indica se há alguma cliente após fechamento da academia
 volatile char flag_msg_cliente_apos_horario = 1;						// Indica se o aviso de cliente após horário já foi mostrada
 volatile char flag_adm = 0;												// Indica se o administrador está logado
@@ -444,9 +444,6 @@ void LCD_mensagem_adm_horario_erro(){
 	LCD_caractere(LCD_LINHA_UM,CMD);
 	LCD_string("Horario invalido");
 	
-	LCD_caractere(LCD_LINHA_DOIS,CMD);
-	LCD_string("");
-	
 	atraso_mensagem();
 }
 
@@ -506,10 +503,10 @@ void EEPROM_le_lista_horarios(unsigned short* lista_horarios){
 /* lista_hora_entrada: lista com o horário de entrada dos clientes	  */
 /* lista_plano: lista de planos dos clientes						  */
 /*																	  */
-char cliente_entrada(short indice_cliente, unsigned short *lista_hora_entrada, char *lista_planos){
+char cliente_entrada(short indice_cliente, unsigned short *lista_hora_entrada, char *lista_planos, unsigned short* lista_horarios){
 	
 	// Verifica, respectivamente, se o cliente possui conta bloqueada, se a lotação está no limite ou se já passou do horário de funcionamento
-	if(lista_planos[indice_cliente] == 'X'){
+	if(lista_planos[indice_cliente] == 'X' || lista_horarios[indice_cliente] == 0){
 		LCD_mensagem_erro_conta_bloqueada();
 	}
 	else if(lotacao == 5){
@@ -866,20 +863,20 @@ int main(void){
 					// Pede a senha
 					LCD_mensagem_senha();
 					senha_atual = user_input(5,1,&flag_caractere_especial);
-					if(flag_adm == 0){																	// Se não for o administrador
-						if(senha_atual == lista_senhas[indice_cliente]){								// Compara a senha com a lista
-							if(cliente_entrada(indice_cliente,lista_hora_entrada,lista_planos) == 1){	// Se a entrada do cliente for aprovada
-								lotacao++;																// Incrementa a lotação
-								lista_clientes_dentro[indice_cliente] = 1;								// Indica que o usuário está dentro
-								LCD_mensagem_entrada();													// Exibe confirmação de entrada
+					if(flag_adm == 0){																					// Se não for o administrador
+						if(senha_atual == lista_senhas[indice_cliente]){												// Compara a senha com a lista
+							if(cliente_entrada(indice_cliente,lista_hora_entrada,lista_planos,lista_horarios) == 1){	// Se a entrada do cliente for aprovada
+								lotacao++;																				// Incrementa a lotação
+								lista_clientes_dentro[indice_cliente] = 1;												// Indica que o usuário está dentro
+								LCD_mensagem_entrada();																	// Exibe confirmação de entrada
 							}
 						}
-						else{																			// Se a senha estiver errada
-							LCD_mensagem_erro_senha();													// Exibe erro de senha
+						else{																							// Se a senha estiver errada
+							LCD_mensagem_erro_senha();																	// Exibe erro de senha
 						}
 					}
-					else{																				// Se for o administrador
-						if(senha_atual == 12345){														// Checa a senha do administrador
+					else{																								// Se for o administrador
+						if(senha_atual == 12345){																		// Checa a senha do administrador
 							while(flag_adm == 1){
 								// Imprime as opções e aguarda seleção, ou retorna ao menu ('#')
 								LCD_mensagem_adm_opcoes();
@@ -953,24 +950,23 @@ int main(void){
 												LCD_mensagem_adm_horario_erro(); // Exibe mensagem de horário inválido
 											}											
 											else{
-												// Atualiza o tempo restante do cliente, grava o dado na EEPROM e imprime o novo extrato
-												lista_horarios[indice_cliente_adm] = 60*horas_adm + minutos_adm;
-												
 												// Bloco para teste da EEPROM
 												//char tt1, tt2;
 												//LCD_caractere(LCD_LINHA_UM,CMD);
 												cli();
-												//tt1 = EEPROM_leitura(2*indice_cliente+1);
-												//tt2 = EEPROM_leitura(2*indice_cliente);
+												//tt1 = EEPROM_leitura(2*indice_cliente_adm+1);
+												//tt2 = EEPROM_leitura(2*indice_cliente_adm);
 												
 												//LCD_caractere(tt1 + '!',DADO);
 												//LCD_caractere(tt2 + '!',DADO);
+												// Atualiza o tempo restante do cliente, grava o dado na EEPROM e imprime o novo extrato
+												lista_horarios[indice_cliente_adm] = 60*horas_adm + minutos_adm;
 												
-												EEPROM_escreve_horario(2*indice_cliente,lista_horarios[indice_cliente]);
+												EEPROM_escreve_horario(2*indice_cliente_adm,lista_horarios[indice_cliente_adm]);
 												
 												//LCD_caractere(LCD_LINHA_DOIS,CMD);
-												//tt1 = EEPROM_leitura(2*indice_cliente+1);
-												//tt2 = EEPROM_leitura(2*indice_cliente);
+												//tt1 = EEPROM_leitura(2*indice_cliente_adm+1);
+												//tt2 = EEPROM_leitura(2*indice_cliente_adm);
 												sei();
 												
 												//LCD_caractere(tt1 + '!',DADO);
