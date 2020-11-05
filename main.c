@@ -15,11 +15,11 @@
 
 #include "lima.h"
 
-char horas[2] = {0,2}, minutos[2] = {5,5}, lotacao;
+char horas[2] = {1,3}, minutos[2] = {5,5}, lotacao;
 volatile char flag_cliente_apos_horario = 0;
 volatile char flag_adm = 0, flag_atualiza_horario = 0;
 volatile char flag_tecla_digitada = 0, flag_aguarda_msg = 0;
-volatile char flag_cliente_autorizado = 0, flag_msg_cliente_apos_horario = 0;
+volatile char flag_cliente_autorizado = 0, flag_msg_cliente_apos_horario = 1;
 volatile char flag_caractere_especial = 0;
 
 /* atualiza_hora:
@@ -712,6 +712,10 @@ int main(void){
 			LCD_mensagem_padrao();
 		}
 		
+		if(flag_cliente_apos_horario == 0 && flag_msg_cliente_apos_horario == 1){
+			LCD_mensagem_padrao();
+		}
+		
 		tecla = TCL_checa_teclado();
 		// Se alguma tecla foi apertada, ativa o flag de tecla apertada
 		if(tecla == '*'){
@@ -747,25 +751,25 @@ int main(void){
 					}
 					lotacao--;
 					
-					char tt1, tt2;
-					LCD_caractere(LCD_LINHA_UM,CMD);
+					//char tt1, tt2;
+					//LCD_caractere(LCD_LINHA_UM,CMD);
 					cli();
-					tt1 = EEPROM_leitura(2*indice_cliente+1);
-					tt2 = EEPROM_leitura(2*indice_cliente);
+					//tt1 = EEPROM_leitura(2*indice_cliente+1);
+					//tt2 = EEPROM_leitura(2*indice_cliente);
 					
-					LCD_caractere(tt1 + '!',DADO);
-					LCD_caractere(tt2 + '!',DADO);
+					//LCD_caractere(tt1 + '!',DADO);
+					//LCD_caractere(tt2 + '!',DADO);
 					
 					EEPROM_escreve_horario(2*indice_cliente,lista_horarios[indice_cliente]);
 					
-					LCD_caractere(LCD_LINHA_DOIS,CMD);
-					tt1 = EEPROM_leitura(2*indice_cliente+1);
-					tt2 = EEPROM_leitura(2*indice_cliente);					
+					//LCD_caractere(LCD_LINHA_DOIS,CMD);
+					//tt1 = EEPROM_leitura(2*indice_cliente+1);
+					//tt2 = EEPROM_leitura(2*indice_cliente);					
 					sei();
 					
-					LCD_caractere(tt1 + '!',DADO);
-					LCD_caractere(tt2 + '!',DADO);
-					while(TCL_checa_teclado() != '#');
+					//LCD_caractere(tt1 + '!',DADO);
+					//LCD_caractere(tt2 + '!',DADO);
+					//while(TCL_checa_teclado() != '#');
 					
 					LCD_mensagem_saida(lista_hora_entrada[indice_cliente],lista_horarios[indice_cliente],hh_buffer,mm_buffer);
 					
@@ -889,12 +893,8 @@ int main(void){
 			}
 			else{
 				LCD_mensagem_erro_login();
-			}
-			
+			}			
 			flag_tecla_digitada = 0;
-			if(flag_cliente_apos_horario == 0 && flag_msg_cliente_apos_horario == 1){
-				LCD_mensagem_padrao();
-			}
 			
 		}		
     }
