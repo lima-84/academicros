@@ -1,34 +1,51 @@
+/************************************************************/
+/*		Universidade Federal do Rio Grande do Sul			*/
+/*			ENG04475 - Microprocessadores I					*/
+/*	Controle de acesso eletrônico para academias	- AVR	*/
+/*															*/
+/*	Alunos:													*/
+/*	 00302389 - Enrique Leon Paillo Statquevios				*/
+/*   00262546 - Guilherme Cabral							*/
+/*   00288579 - Pedro Rodrigues de Lima						*/
+/*															*/
+/************************************************************/
+
+/* lima.h: Biblioteca que contém as funções básicas do AVR e #defines */
+/*  Atrasos, display, teclado, conversão de variáveis, EEPROM		  */
+
 #ifndef LIMA_H_
 #define LIMA_H_
 
-#include <stdlib.h>
+#include <avr/io.h>			// Macros básicos do AVR
+#include <avr/interrupt.h>	// Funções de interrupção
+#include <stdlib.h>			// Funções atoi() e itoa()
 
 // Tempo de bounce em ms
 #define BOUNCE 8
 
-// Número de contagens dos atrasos (PRESCALER=256)
-#define ATR_800 50
-#define ATR_1200 75
+// Número de contagens dos atrasos, arredondados (PRESCALER=256)
+#define ATR_800 50				//  800us
+#define ATR_1200 75				// 1200us
+								
+#define ATR_40 3				//   40us
+#define ATR_1600 100			// 1600us
+#define ATR_1000 63				// 1000us
 
-#define ATR_40 3
-#define ATR_1600 100
-#define ATR_1000 63
-
-#define ATR_200_MS 12500
-#define ATR_500_MS 31250
-#define ATR_1000_MS 62500
+#define ATR_200_MS 12500		//  200ms
+#define ATR_500_MS 31250		//  500ms
+#define ATR_1000_MS 62500		// 1000ms
 
 // Modos do Timer0
-#define T0OVR 0x00	// Modo overflow
-#define T0CTC 0x02	// Modo CTC
+#define T0OVR 0x00				// Modo overflow
+#define T0CTC 0x02				// Modo CTC
 
 // Modos do Timer1
-#define T1OVR 0x00	// Modo overflow
-#define T1CTC 0x04	// Modo CTC
+#define T1OVR 0x00				// Modo overflow
+#define T1CTC 0x04				// Modo CTC
 
 // Modos do Timer2
-#define T2OVR 0x00	// Modo overflow
-#define T2CTC 0x02	// Modo CTC
+#define T2OVR 0x00				// Modo overflow
+#define T2CTC 0x02				// Modo CTC
 
 // Prescalers comuns para Timer0 e Timer1
 #define PRE_TIMER_OFF 0x00
@@ -49,53 +66,53 @@
 #define PRE2_1024 0x07
 
 // Pinos da placa
-#define LED 5		// LED da placa PB5
+#define LED 5					// LED da placa PB5
 
-#define TESTE 0		// Pino para ser utilizado como teste/debug
-#define PORTT PORTC	// Porta em que o pino se localiza
-#define DDRT DDRC	// Registrador de direção da porta do pino
+#define TESTE 0					// Pino para ser utilizado como teste/debug
+#define PORTT PORTC				// Porta em que o pino se localiza
+#define DDRT DDRC				// Registrador de direção da porta do pino
 
 // Pinos do display LCD
-#define RS 7		// RS no pino PD7
-#define EN 4		// EN no pino PB4
+#define RS 7					// RS no pino PD7
+#define EN 4					// EN no pino PB4
 
 // Comandos de inicialização do display LCD
-#define LCD_4BIT_MODE 0x02	// Modo 4-bits
-#define LCD_FUNC_SET 0x28	// Tamanho do display e tipo de caractere
-#define LCD_DISP_CTRL 0x0C	// Liga/desliga display e cursor
-#define LCD_ENTRY_MODE 0x06	// Incremento do cursor
-#define LCD_CLEAR 0x01		// Ativa o comando de CLEAR
+#define LCD_4BIT_MODE 0x02		// Modo 4-bits
+#define LCD_FUNC_SET 0x28		// Tamanho do display e tipo de caractere
+#define LCD_DISP_CTRL 0x0C		// Liga/desliga display e cursor
+#define LCD_ENTRY_MODE 0x06		// Incremento do cursor
+#define LCD_CLEAR 0x01			// Ativa o comando de CLEAR
 
 // Comandos para o cursor do display LCD
-#define LCD_CBLINK	0x0F	// Cursor ligado e piscando
-#define LCD_CSTATIC	0x0C	// Cursor desligado
+#define LCD_CBLINK	0x0F		// Cursor ligado e piscando
+#define LCD_CSTATIC	0x0C		// Cursor desligado
 
 // Comandos de posicionamento do display LCD
-#define LCD_LINHA_UM 0x80	// Coloca o cursor na linha um
-#define LCD_LINHA_DOIS 0xC0	// Coloca o cursor na linha dois
-#define LCD_HORA 11			// Coloca o cursor na coluna das horas
-#define LCD_LOTACAO 15		// Coloca o cursor na coluna da lotação
-#define LCD_LOGIN 6			// Coloca o cursor após a mensagem de login
+#define LCD_LINHA_UM 0x80		// Coloca o cursor na linha um
+#define LCD_LINHA_DOIS 0xC0		// Coloca o cursor na linha dois
+#define LCD_HORA 11				// Coloca o cursor na coluna das horas
+#define LCD_LOTACAO 15			// Coloca o cursor na coluna da lotação
+#define LCD_LOGIN 6				// Coloca o cursor após a mensagem de login
 
 // Flag de comando/dado para o display LCD
-#define CMD 0				// Valor do flag para envio de comando
-#define DADO 1				// Valor do flag para envio de dado
+#define CMD 0					// Valor do flag para envio de comando
+#define DADO 1					// Valor do flag para envio de dado
 
-#define TOTAL_CLIENTES 11	// Número total de clientes
+#define TOTAL_CLIENTES 11		// Número total de clientes
 
-// Linhas e colunas do teclado
-#define COL1 0x60
-#define COL2 0x50
-#define COL3 0x30
+// Colunas do teclado em relação aos pinos do microprocessador (acionadas em 0)
+#define COL1 0x60				// Coluna 1 (1,4,7,*)
+#define COL2 0x50				// Coluna 2 (2,5,8,0)
+#define COL3 0x30				// Coluna 3 (3,6,9,#)
 
-//Minutos para diferentes contas
-#define MIN_BASICA 3600
-#define MIN_PREMIUM 5400
+// Tempo em minutos da conta
+#define MIN_BASICA 3600			// Conta básica:  60 horas
+#define MIN_PREMIUM 5400		// Conta premium: 90 horas
 
-/* atraso_timer0:
- * Gera um atraso relativo a n contagens com Timer0 em modo normal
- * n = 256 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
- */
+/* atraso_timer0:													*/
+/* Gera um atraso relativo a n contagens com Timer0 em modo normal	*/
+/* n = 256 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)					*/
+/*																	*/
 void atraso_timer0(volatile unsigned char n){
 	// O Timer deve ser configurado previamente conforme necessário
 	TCNT0 = n;						// Inicializa o timer
@@ -104,13 +121,13 @@ void atraso_timer0(volatile unsigned char n){
 }
 
 /* atraso_timer1:
- * Gera um atraso relativo a n contagens com Timer0 em modo normal
+ * Gera um atraso relativo a n contagens com Timer1 em modo normal
  * n = 65536 - ROUND((FREQ_TIMER/PRESCALER)*ATRASO)
  */
 void atraso_timer1(volatile unsigned short n){
-	TCNT1 = n;
-	while((TIFR1 & (1 << 0)) == 0);
-	TIFR1 |= (1 << 0);
+	TCNT1 = n;						// Inicializa o timer
+	while((TIFR1 & (1 << 0)) == 0);	// Espera o flag de overflow
+	TIFR1 |= (1 << 0);				// Zera o flag de overflow
 }
 
 /* atraso_timer2:
@@ -287,12 +304,14 @@ volatile unsigned char TCL_checa_teclado(){
 	
 }
 
-int user_input(int num_teclas, char senha){
+int user_input(int num_teclas, char senha, volatile char* flag_caratere_especial){
 	char input[num_teclas];
 	for(int i = 0; i < num_teclas; i++){
 		char tecla = ' ';
 		while(tecla == ' ' || tecla == 'E')
 			tecla = TCL_checa_teclado();
+		if(tecla == '#' || tecla == '*')
+			*flag_caratere_especial = 1;
 		if(senha == 0){
 			LCD_caractere(tecla, DADO);
 		}
@@ -313,6 +332,14 @@ int valida_cliente(volatile short int input, volatile const short lista[11]){
 	return 'E';
 }
 
+void trata_zeros_horario(char* str){
+	if(str[1] == '\0'){
+		str[1] = str[0];
+		str[0] = '0';
+		str[2] = '\0';
+	}
+}
+
 int hhmm_para_minutos(char* horas, char* minutos){
 	
 	return ((int) horas[0])*600 + ((int) horas[1])*60 + ((int) minutos[0])*10 + ((int) minutos[1]);
@@ -327,8 +354,10 @@ void minutos_para_hhmm(int total_minutos, char* str_horas, char* str_minutos){
 	num_minutos = total_minutos%60;
 	
 	itoa(num_horas,str_horas,10);
-	itoa(num_minutos,str_minutos,10);	
+	itoa(num_minutos,str_minutos,10);
 	
+	trata_zeros_horario(str_horas);
+	trata_zeros_horario(str_minutos);
 }
 
 /* EEPROM_escrita: 
